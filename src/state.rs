@@ -9,8 +9,7 @@ use smithay::{
         wayland_server::{
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
-            Display, DisplayHandle,
-            Resource,
+            Display, DisplayHandle, Resource,
         },
     },
     utils::{Logical, Point},
@@ -105,7 +104,7 @@ impl SmallCage {
             seat_state,
             data_device_state,
             seat,
-            fullscreen_state: FullScreenState::Finished
+            fullscreen_state: FullScreenState::Finished,
         }
     }
 
@@ -159,11 +158,19 @@ impl SmallCage {
         pointer: &PointerHandle<Self>,
     ) -> Option<(WlSurface, Point<i32, Logical>)> {
         let pos = pointer.current_location();
-        self.space.element_under(pos).and_then(|(window, location)| {
-            window
-                .surface_under(pos - location.to_f64(), WindowSurfaceType::ALL)
-                .map(|(s, p)| (s, p + location))
-        })
+        self.space
+            .element_under(pos)
+            .and_then(|(window, location)| {
+                window
+                    .surface_under(pos - location.to_f64(), WindowSurfaceType::ALL)
+                    .map(|(s, p)| (s, p + location))
+            })
+    }
+
+    pub fn publish_commit(&mut self) {
+        for w in self.space.elements() {
+            w.toplevel().send_configure();
+        }
     }
 
     pub fn full_screen_commit(&mut self, surface: &WlSurface) {
@@ -183,6 +190,7 @@ impl SmallCage {
                 state.size = Some(geometry.size);
                 state.fullscreen_output = wl_output;
             });
+            toplevelsurface.send_configure();
             self.fullscreen_state = FullScreenState::Finished;
         }
     }

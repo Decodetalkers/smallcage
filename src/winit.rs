@@ -92,6 +92,7 @@ pub fn winit_dispatch(
                 None,
                 None,
             );
+            state.publish_commit();
         }
         WinitEvent::Input(event) => state.process_input_event(event),
         _ => (),
