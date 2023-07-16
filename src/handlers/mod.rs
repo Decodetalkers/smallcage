@@ -36,6 +36,7 @@ delegate_seat!(SmallCage);
 //
 
 impl DataDeviceHandler for SmallCage {
+    type SelectionUserData = ();
     fn data_device_state(&self) -> &smithay::wayland::data_device::DataDeviceState {
         &self.data_device_state
     }
