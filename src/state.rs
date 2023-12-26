@@ -178,29 +178,56 @@ impl SmallCage {
     pub fn publish_commit(&mut self) {
         for w in self.space.elements() {
             w.toplevel().send_configure();
+            self.full_screen_commit_pre(w.toplevel().wl_surface());
         }
+        self.fullscreen_state = FullScreenState::Finished;
+    }
+
+    pub fn full_screen_commit_pre(&self, surface: &WlSurface) {
+        if let FullScreenState::Finished = self.fullscreen_state {
+            return;
+        }
+        let output = self.space.outputs().next().unwrap();
+        let geometry = self.space.output_geometry(output).unwrap();
+        let window = self.space.elements().next().unwrap();
+        let toplevelsurface = window.toplevel();
+
+        let client = self.display_handle.get_client(surface.id()).unwrap();
+        let mut wl_output = None;
+        for output in output.client_outputs(&client) {
+            wl_output = Some(output);
+            break;
+        }
+        toplevelsurface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Fullscreen);
+            state.size = Some(geometry.size);
+            state.fullscreen_output = wl_output;
+        });
+        toplevelsurface.send_configure();
     }
 
     pub fn full_screen_commit(&mut self, surface: &WlSurface) {
-        if let FullScreenState::Ready = self.fullscreen_state {
-            let output = self.space.outputs().next().unwrap();
-            let geometry = self.space.output_geometry(output).unwrap();
-            let window = self.space.elements().next().unwrap();
-            let toplevelsurface = window.toplevel();
-
-            let client = self.display_handle.get_client(surface.id()).unwrap();
-            let mut wl_output = None;
-            for output in output.client_outputs(&client) {
-                wl_output = Some(output);
-            }
-            toplevelsurface.with_pending_state(|state| {
-                state.states.set(xdg_toplevel::State::Fullscreen);
-                state.size = Some(geometry.size);
-                state.fullscreen_output = wl_output;
-            });
-            toplevelsurface.send_configure();
-            self.fullscreen_state = FullScreenState::Finished;
+        if let FullScreenState::Finished = self.fullscreen_state {
+            return;
         }
+        let output = self.space.outputs().next().unwrap();
+        let geometry = self.space.output_geometry(output).unwrap();
+        let window = self.space.elements().next().unwrap();
+        let toplevelsurface = window.toplevel();
+
+        let client = self.display_handle.get_client(surface.id()).unwrap();
+        let mut wl_output = None;
+        for output in output.client_outputs(&client) {
+            wl_output = Some(output);
+            break;
+        }
+        toplevelsurface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Fullscreen);
+            state.size = Some(geometry.size);
+            state.fullscreen_output = wl_output;
+        });
+        toplevelsurface.send_configure();
+        self.fullscreen_state = FullScreenState::Finished;
     }
 }
 
