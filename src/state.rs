@@ -177,7 +177,7 @@ impl SmallCage {
 
     pub fn publish_commit(&mut self) {
         for w in self.space.elements() {
-            w.toplevel().send_configure();
+            //w.toplevel().send_configure();
             self.full_screen_commit_pre(w.toplevel().wl_surface());
         }
         self.fullscreen_state = FullScreenState::Finished;
