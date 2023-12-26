@@ -4,12 +4,15 @@ mod input;
 mod state;
 mod winit;
 
-use smithay::reexports::{calloop::EventLoop, wayland_server::Display};
+use smithay::reexports::{
+    calloop::EventLoop,
+    wayland_server::{Display, DisplayHandle},
+};
 pub use state::SmallCage;
 
 pub struct CalloopData {
     state: SmallCage,
-    display: Display<SmallCage>,
+    display_handle: DisplayHandle,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,10 +24,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut event_loop: EventLoop<CalloopData> = EventLoop::try_new()?;
 
-    let mut display: Display<SmallCage> = Display::new()?;
-    let state = SmallCage::new(&mut event_loop, &mut display);
+    let display: Display<SmallCage> = Display::new()?;
+    let display_handle = display.handle();
+    let state = SmallCage::new(&mut event_loop, display);
 
-    let mut data = CalloopData { state, display };
+    let mut data = CalloopData {
+        state,
+        display_handle,
+    };
 
     crate::winit::init_winit(&mut event_loop, &mut data)?;
 
@@ -32,7 +39,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let flag = args.next();
     let arg = args.next();
 
-    std::thread::sleep(std::time::Duration::from_secs(2));
     match (flag.as_deref(), arg) {
         (Some("-c") | Some("--command"), Some(command)) => {
             std::process::Command::new(command).spawn().ok();

@@ -9,7 +9,10 @@ use crate::SmallCage;
 
 use smithay::input::{SeatHandler, SeatState};
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
-use smithay::wayland::data_device::{ClientDndGrabHandler, DataDeviceHandler, ServerDndGrabHandler};
+use smithay::wayland::selection::data_device::{
+    ClientDndGrabHandler, DataDeviceHandler, ServerDndGrabHandler,
+};
+use smithay::wayland::selection::SelectionHandler;
 use smithay::{delegate_data_device, delegate_output, delegate_seat};
 
 impl SeatHandler for SmallCage {
@@ -35,9 +38,12 @@ delegate_seat!(SmallCage);
 // Wl Data Device
 //
 
-impl DataDeviceHandler for SmallCage {
+impl SelectionHandler for SmallCage {
     type SelectionUserData = ();
-    fn data_device_state(&self) -> &smithay::wayland::data_device::DataDeviceState {
+}
+
+impl DataDeviceHandler for SmallCage {
+    fn data_device_state(&self) -> &smithay::wayland::selection::data_device::DataDeviceState {
         &self.data_device_state
     }
 }

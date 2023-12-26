@@ -1,6 +1,7 @@
-use std::{ffi::OsString, os::unix::io::AsRawFd, sync::Arc};
+use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
+    delegate_xdg_activation,
     desktop::{Space, Window, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
@@ -15,11 +16,12 @@ use smithay::{
     utils::{Logical, Point},
     wayland::{
         compositor::{CompositorClientState, CompositorState},
-        data_device::DataDeviceState,
         output::OutputManagerState,
-        shell::xdg::XdgShellState,
+        selection::data_device::DataDeviceState,
+        shell::xdg::{XdgShellHandler, XdgShellState},
         shm::ShmState,
         socket::ListeningSocketSource,
+        xdg_activation::{XdgActivationHandler, XdgActivationState},
     },
 };
 
@@ -46,6 +48,7 @@ pub struct SmallCage {
     pub output_manager_state: OutputManagerState,
     pub seat_state: SeatState<SmallCage>,
     pub data_device_state: DataDeviceState,
+    pub xdg_activation_state: XdgActivationState,
 
     pub seat: Seat<Self>,
 
@@ -53,7 +56,7 @@ pub struct SmallCage {
 }
 
 impl SmallCage {
-    pub fn new(event_loop: &mut EventLoop<CalloopData>, display: &mut Display<Self>) -> Self {
+    pub fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
         let start_time = std::time::Instant::now();
 
         let dh = display.handle();
@@ -64,6 +67,8 @@ impl SmallCage {
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let mut seat_state = SeatState::new();
         let data_device_state = DataDeviceState::new::<Self>(&dh);
+
+        let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
 
         // A seat is a group of keyboards, pointer and touch devices.
         // A seat typically has a pointer and maintains a keyboard focus and a pointer focus.
@@ -91,7 +96,7 @@ impl SmallCage {
         Self {
             start_time,
 
-            display_handle: display.handle(),
+            display_handle: dh,
 
             space,
             loop_signal,
@@ -104,12 +109,14 @@ impl SmallCage {
             seat_state,
             data_device_state,
             seat,
+            xdg_activation_state,
+
             fullscreen_state: FullScreenState::Finished,
         }
     }
 
     fn init_wayland_listener(
-        display: &mut Display<SmallCage>,
+        display: Display<SmallCage>,
         event_loop: &mut EventLoop<CalloopData>,
     ) -> OsString {
         // Creates a new listening socket, automatically choosing the next available `wayland` socket name.
@@ -128,27 +135,28 @@ impl SmallCage {
                 //
                 // You may also associate some data with the client when inserting the client.
                 state
-                    .display
-                    .handle()
+                    .display_handle
                     .insert_client(client_stream, Arc::new(ClientState::default()))
                     .unwrap();
             })
             .expect("Failed to init the wayland event source.");
-
         // You also need to add the display itself to the event loop, so that client events will be processed by wayland-server.
         handle
             .insert_source(
-                Generic::new(
-                    display.backend().poll_fd().as_raw_fd(),
-                    Interest::READ,
-                    Mode::Level,
-                ),
-                |_, _, state| {
-                    state.display.dispatch_clients(&mut state.state).unwrap();
+                Generic::new(display, Interest::READ, Mode::Level),
+                |_, display, state| {
+                    // Safety: we don't drop the display
+                    unsafe {
+                        display
+                            .get_mut()
+                            .dispatch_clients(&mut state.state)
+                            .unwrap();
+                    }
                     Ok(PostAction::Continue)
                 },
             )
             .unwrap();
+        // You also need to add the display itself to the event loop, so that client events will be processed by wayland-server.
 
         socket_name
     }
@@ -195,6 +203,21 @@ impl SmallCage {
         }
     }
 }
+
+impl XdgActivationHandler for SmallCage {
+    fn activation_state(&mut self) -> &mut XdgActivationState {
+        &mut self.xdg_activation_state
+    }
+    fn request_activation(
+        &mut self,
+        _token: smithay::wayland::xdg_activation::XdgActivationToken,
+        _token_data: smithay::wayland::xdg_activation::XdgActivationTokenData,
+        _surface: WlSurface,
+    ) {
+    }
+}
+
+delegate_xdg_activation!(SmallCage);
 
 #[derive(Default)]
 pub struct ClientState {
