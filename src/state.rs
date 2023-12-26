@@ -18,7 +18,7 @@ use smithay::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
         selection::data_device::DataDeviceState,
-        shell::xdg::{XdgShellHandler, XdgShellState},
+        shell::xdg::XdgShellState,
         shm::ShmState,
         socket::ListeningSocketSource,
         xdg_activation::{XdgActivationHandler, XdgActivationState},
