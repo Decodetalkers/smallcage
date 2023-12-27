@@ -25,11 +25,6 @@ use smithay::{
     },
 };
 
-pub enum FullScreenState {
-    Ready,
-    Finished,
-}
-
 use crate::CalloopData;
 
 pub struct SmallCage {
@@ -51,8 +46,6 @@ pub struct SmallCage {
     pub xdg_activation_state: XdgActivationState,
 
     pub seat: Seat<Self>,
-
-    pub fullscreen_state: FullScreenState,
 }
 
 impl SmallCage {
@@ -110,8 +103,6 @@ impl SmallCage {
             data_device_state,
             seat,
             xdg_activation_state,
-
-            fullscreen_state: FullScreenState::Finished,
         }
     }
 
@@ -178,56 +169,28 @@ impl SmallCage {
     pub fn publish_commit(&mut self) {
         for w in self.space.elements() {
             //w.toplevel().send_configure();
-            self.full_screen_commit_pre(w.toplevel().wl_surface());
+            self.full_screen_commit(w.toplevel().wl_surface());
         }
-        self.fullscreen_state = FullScreenState::Finished;
     }
 
-    pub fn full_screen_commit_pre(&self, surface: &WlSurface) {
-        if let FullScreenState::Finished = self.fullscreen_state {
-            return;
-        }
+    pub fn full_screen_commit(&self, surface: &WlSurface) {
         let output = self.space.outputs().next().unwrap();
         let geometry = self.space.output_geometry(output).unwrap();
         let window = self.space.elements().next().unwrap();
         let toplevelsurface = window.toplevel();
 
         let client = self.display_handle.get_client(surface.id()).unwrap();
-        let mut wl_output = None;
-        for output in output.client_outputs(&client) {
-            wl_output = Some(output);
-            break;
-        }
-        toplevelsurface.with_pending_state(|state| {
-            state.states.set(xdg_toplevel::State::Fullscreen);
-            state.size = Some(geometry.size);
-            state.fullscreen_output = wl_output;
-        });
-        toplevelsurface.send_configure();
-    }
 
-    pub fn full_screen_commit(&mut self, surface: &WlSurface) {
-        if let FullScreenState::Finished = self.fullscreen_state {
+        let Some(wl_output) = output.client_outputs(&client).into_iter().next() else {
             return;
-        }
-        let output = self.space.outputs().next().unwrap();
-        let geometry = self.space.output_geometry(output).unwrap();
-        let window = self.space.elements().next().unwrap();
-        let toplevelsurface = window.toplevel();
+        };
 
-        let client = self.display_handle.get_client(surface.id()).unwrap();
-        let mut wl_output = None;
-        for output in output.client_outputs(&client) {
-            wl_output = Some(output);
-            break;
-        }
         toplevelsurface.with_pending_state(|state| {
             state.states.set(xdg_toplevel::State::Fullscreen);
             state.size = Some(geometry.size);
-            state.fullscreen_output = wl_output;
+            state.fullscreen_output = Some(wl_output);
         });
         toplevelsurface.send_configure();
-        self.fullscreen_state = FullScreenState::Finished;
     }
 }
 

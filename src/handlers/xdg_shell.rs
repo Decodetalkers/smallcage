@@ -1,6 +1,6 @@
 use smithay::{
     delegate_xdg_shell,
-    desktop::{Space, Window},
+    desktop::Window,
     reexports::wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
     utils::Serial,
     wayland::{
@@ -12,7 +12,7 @@ use smithay::{
     },
 };
 
-use crate::{state::FullScreenState, SmallCage};
+use crate::SmallCage;
 
 impl XdgShellHandler for SmallCage {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
@@ -22,7 +22,6 @@ impl XdgShellHandler for SmallCage {
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new(surface);
         self.space.map_element(window, (0, 0), true);
-        self.fullscreen_state = FullScreenState::Ready;
     }
 
     fn new_popup(&mut self, _surface: PopupSurface, _positioner: PositionerState) {
@@ -47,25 +46,38 @@ impl XdgShellHandler for SmallCage {
 delegate_xdg_shell!(SmallCage);
 
 /// Should be called on `WlSurface::commit`
-pub fn handle_commit(space: &Space<Window>, surface: &WlSurface) -> Option<()> {
-    let window = space
-        .elements()
-        .find(|w| w.toplevel().wl_surface() == surface)
-        .cloned()?;
+impl SmallCage {
+    pub fn handle_commit(&self, surface: &WlSurface) -> Option<()> {
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
 
-    let initial_configure_sent = with_states(surface, |states| {
-        states
-            .data_map
-            .get::<XdgToplevelSurfaceData>()
-            .unwrap()
-            .lock()
-            .unwrap()
-            .initial_configure_sent
-    });
+        let initial_configure_sent = with_states(surface, |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .initial_configure_sent
+        });
+        let isconfigured = with_states(surface, |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .configured
+        });
+        if !initial_configure_sent {
+            window.toplevel().send_configure();
+        } else if isconfigured {
+            self.full_screen_commit(surface);
+        }
 
-    if !initial_configure_sent {
-        window.toplevel().send_configure();
+        Some(())
     }
-
-    Some(())
 }

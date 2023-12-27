@@ -16,8 +16,6 @@ use smithay::{
     },
 };
 
-use super::xdg_shell;
-
 impl CompositorHandler for SmallCage {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
@@ -42,8 +40,7 @@ impl CompositorHandler for SmallCage {
                 window.on_commit();
             }
         };
-        xdg_shell::handle_commit(&self.space, surface);
-        self.full_screen_commit(surface);
+        self.handle_commit(surface);
     }
 }
 

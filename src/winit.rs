@@ -13,7 +13,7 @@ use smithay::{
     utils::{Rectangle, Transform},
 };
 
-use crate::{state::FullScreenState, CalloopData, SmallCage};
+use crate::{CalloopData, SmallCage};
 
 pub fn init_winit(
     event_loop: &mut EventLoop<CalloopData>,
@@ -62,7 +62,6 @@ pub fn init_winit(
 
             match event {
                 WinitEvent::Resized { size, .. } => {
-                    state.fullscreen_state = FullScreenState::Ready;
                     output.change_current_state(
                         Some(Mode {
                             size,
