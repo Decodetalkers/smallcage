@@ -1,7 +1,13 @@
 use smithay::{
     delegate_xdg_shell,
     desktop::Window,
-    reexports::wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
+    reexports::{
+        wayland_protocols::xdg::shell::server::xdg_toplevel,
+        wayland_server::{
+            protocol::{wl_seat, wl_surface::WlSurface},
+            Resource,
+        },
+    },
     utils::Serial,
     wayland::{
         compositor::with_states,
@@ -79,5 +85,25 @@ impl SmallCage {
         }
 
         Some(())
+    }
+
+    pub fn full_screen_commit(&self, surface: &WlSurface) {
+        let output = self.space.outputs().next().unwrap();
+        let geometry = self.space.output_geometry(output).unwrap();
+        let window = self.space.elements().next().unwrap();
+        let toplevelsurface = window.toplevel();
+
+        let client = self.display_handle.get_client(surface.id()).unwrap();
+
+        let Some(wl_output) = output.client_outputs(&client).into_iter().next() else {
+            return;
+        };
+
+        toplevelsurface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Fullscreen);
+            state.size = Some(geometry.size);
+            state.fullscreen_output = Some(wl_output);
+        });
+        toplevelsurface.send_configure();
     }
 }
