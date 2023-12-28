@@ -26,6 +26,14 @@ use smithay::{
 
 use crate::CalloopData;
 
+#[derive(Debug, Default, Clone, Copy)]
+pub enum SplitState {
+    #[default]
+    H,
+    V,
+}
+
+
 pub struct SmallCage {
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
@@ -46,6 +54,9 @@ pub struct SmallCage {
     pub xdg_activation_state: XdgActivationState,
 
     pub seat: Seat<Self>,
+    pub pointer: PointerHandle<Self>,
+
+    pub splitstate: SplitState,
 }
 
 impl SmallCage {
@@ -73,7 +84,7 @@ impl SmallCage {
 
         // Notify clients that we have a pointer (mouse)
         // Here we assume that there is always pointer plugged in
-        seat.add_pointer();
+        let pointer = seat.add_pointer();
 
         // A space represents a two-dimensional plane. Windows and Outputs can be mapped onto it.
         //
@@ -103,8 +114,13 @@ impl SmallCage {
             output_manager_state,
             seat_state,
             data_device_state,
-            seat,
             xdg_activation_state,
+
+            seat,
+            pointer,
+
+
+            splitstate: SplitState::default(),
         }
     }
 
@@ -168,9 +184,10 @@ impl SmallCage {
             })
     }
 
+    #[allow(unused)]
     pub fn resize_elements(&mut self) {
         for w in self.space.elements() {
-            self.full_screen_commit(w.toplevel().wl_surface());
+            //self.full_screen_commit(w.toplevel().wl_surface());
         }
     }
 }

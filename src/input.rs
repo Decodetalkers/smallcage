@@ -1,33 +1,61 @@
 use smithay::{
     backend::input::{
         AbsolutePositionEvent, Axis, AxisSource, ButtonState, Event, InputBackend, InputEvent,
-        KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
+        KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent,
     },
     input::{
-        keyboard::FilterResult,
+        keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState},
         pointer::{AxisFrame, ButtonEvent, MotionEvent},
     },
     reexports::wayland_server::protocol::wl_surface::WlSurface,
     utils::SERIAL_COUNTER,
 };
 
-use crate::state::SmallCage;
+use crate::state::{SmallCage, SplitState};
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum KeyAction {
+    /// Quit the compositor
+    Quit,
+    /// Trigger a vt-switch
+    VtSwitch(i32),
+    /// run a command
+    Run(String),
+    ChangeWmState,
+    ChangeSplitSate(SplitState),
+    /// Switch the current screen
+    Screen(usize),
+    ScaleUp,
+    ScaleDown,
+    TogglePreview,
+    RotateOutput,
+    ToggleTint,
+    /// Do nothing more
+    None,
+}
 
 impl SmallCage {
     pub fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
         match event {
             InputEvent::Keyboard { event, .. } => {
-                let serial = SERIAL_COUNTER.next_serial();
-                let time = Event::time_msec(&event);
-
-                self.seat.get_keyboard().unwrap().input::<(), _>(
-                    self,
-                    event.key_code(),
-                    event.state(),
-                    serial,
-                    time,
-                    |_, _, _| FilterResult::Forward,
-                );
+                match self.keyboard_key_to_action::<I>(event) {
+                    KeyAction::Run(cmd) => {
+                        if let Err(e) = std::process::Command::new(&cmd)
+                            .env("WAYLAND_DISPLAY", self.socket_name.clone())
+                            .spawn()
+                        {
+                            tracing::error!(cmd, err = %e, "Failed to start program");
+                        }
+                    }
+                    KeyAction::ChangeWmState => {
+                        //self.wmstatus.status_change();
+                    }
+                    KeyAction::ChangeSplitSate(state) => {
+                        self.splitstate = state;
+                    }
+                    _ => {}
+                }
             }
             InputEvent::PointerMotion { .. } => {}
             InputEvent::PointerMotionAbsolute { event, .. } => {
@@ -139,5 +167,74 @@ impl SmallCage {
 
             _ => {}
         }
+    }
+}
+
+impl SmallCage {
+    fn keyboard_key_to_action<B: InputBackend>(&mut self, evt: B::KeyboardKeyEvent) -> KeyAction {
+        let keycode = evt.key_code();
+        let state = evt.state();
+        tracing::debug!(keycode, ?state, "key");
+        let serial = SERIAL_COUNTER.next_serial();
+        let time = Event::time_msec(&evt);
+        let keyboard = self.seat.get_keyboard().unwrap();
+        keyboard
+            .input(
+                self,
+                keycode,
+                state,
+                serial,
+                time,
+                |_, modifiers, handle| {
+                    let keysym = handle.modified_sym();
+                    if let KeyState::Pressed = state {
+                        let action = process_keyboard_shortcut(*modifiers, keysym);
+                        action
+                            .map(FilterResult::Intercept)
+                            .unwrap_or(FilterResult::Forward)
+                    } else {
+                        FilterResult::Forward
+                    }
+                },
+            )
+            .unwrap_or(KeyAction::None)
+    }
+}
+fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Option<KeyAction> {
+    let keysym: u32 = keysym.into();
+    if modifiers.ctrl && modifiers.alt && keysym == xkb::KEY_BackSpace.into()
+        || modifiers.logo && keysym == xkb::KEY_q.into()
+    {
+        // ctrl+alt+backspace = quit
+        // logo + q = quit
+        Some(KeyAction::Quit)
+    } else if (xkb::KEY_XF86Switch_VT_1..=xkb::KEY_XF86Switch_VT_12).contains(&keysym.into()) {
+        // VTSwitch
+        Some(KeyAction::VtSwitch(
+            (keysym - xkb::KEY_XF86Switch_VT_1 + 1) as i32,
+        ))
+    } else if modifiers.logo && keysym == xkb::KEY_Return {
+        // run terminal
+        Some(KeyAction::Run("konsole".into()))
+    } else if modifiers.logo && (xkb::KEY_1..=xkb::KEY_9).contains(&keysym) {
+        Some(KeyAction::Screen((keysym - xkb::KEY_1) as usize))
+    } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_M {
+        Some(KeyAction::ScaleDown)
+    } else if modifiers.logo && keysym == xkb::KEY_P {
+        Some(KeyAction::ChangeWmState)
+    } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_P {
+        Some(KeyAction::ScaleUp)
+    } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_W {
+        Some(KeyAction::TogglePreview)
+    } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_R {
+        Some(KeyAction::RotateOutput)
+    } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_T {
+        Some(KeyAction::ToggleTint)
+    } else if modifiers.logo && keysym == xkb::KEY_v {
+        Some(KeyAction::ChangeSplitSate(SplitState::V))
+    } else if modifiers.logo && keysym == xkb::KEY_b {
+        Some(KeyAction::ChangeSplitSate(SplitState::H))
+    } else {
+        None
     }
 }

@@ -8,7 +8,7 @@ use smithay::{
             Resource,
         },
     },
-    utils::Serial,
+    utils::{Logical, Point, Rectangle, Serial, Size},
     wayland::{
         compositor::with_states,
         shell::xdg::{
@@ -18,7 +18,7 @@ use smithay::{
     },
 };
 
-use crate::SmallCage;
+use crate::{state::SplitState, SmallCage};
 
 impl XdgShellHandler for SmallCage {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
@@ -27,7 +27,7 @@ impl XdgShellHandler for SmallCage {
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = Window::new(surface);
-        self.space.map_element(window, (0, 0), true);
+        self.space.map_element(window, (0, 0), false);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
@@ -63,7 +63,7 @@ delegate_xdg_shell!(SmallCage);
 
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
-    pub fn handle_commit(&self, surface: &WlSurface) -> Option<()> {
+    pub fn handle_commit(&mut self, surface: &WlSurface) -> Option<()> {
         let window = self
             .space
             .elements()
@@ -91,12 +91,22 @@ impl SmallCage {
         if !initial_configure_sent {
             window.toplevel().send_configure();
         } else if isconfigured {
-            self.full_screen_commit(surface);
+            self.resize_element_commit(surface);
+            //self.full_screen_commit(surface);
         }
 
         Some(())
     }
 
+    fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
+        match self.current_activewindow_rectangle(surface) {
+            Some(rec) => self.map_with_split(surface, rec),
+            None => self.map_one_element(surface),
+        }
+    }
+
+    // this should commit when full is here
+    #[allow(unused)]
     pub fn full_screen_commit(&self, surface: &WlSurface) {
         let output = self.space.outputs().next().unwrap();
         let geometry = self.space.output_geometry(output).unwrap();
@@ -116,6 +126,7 @@ impl SmallCage {
         });
         toplevelsurface.send_configure();
     }
+
     pub fn handle_popup_commit(&self, surface: &WlSurface) {
         if let Some(popup) = self.popups.find_popup(surface) {
             // TODO: input method
@@ -137,5 +148,98 @@ impl SmallCage {
                 popup.send_configure().expect("initial configure failed");
             }
         };
+    }
+}
+
+// This is the logic of tile, here need to find current surface under pointer
+// with the split direction, split the space for new window
+//
+// TODO: I need a new element to mark if it is just init
+impl SmallCage {
+    fn map_one_element(&mut self, surface: &WlSurface) -> Option<()> {
+        let current_screen = self.current_screen_rectangle()?;
+        let loc = current_screen.loc;
+        let (w, h) = current_screen.size.into();
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
+        window.toplevel().with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Resizing);
+            state.size = Some((w, h).into());
+        });
+        window.toplevel().send_configure();
+        self.space.map_element(window, loc, true);
+
+        Some(())
+    }
+
+    fn map_with_split(&mut self, surface: &WlSurface, windowpre: Window) -> Option<()> {
+        let rec = windowpre.geometry();
+        let (x, y) = rec.loc.into();
+        let (w, h) = rec.size.into();
+
+        let (point, size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
+            SplitState::H => {
+                let width = w / 2;
+                let height = h;
+                ((x + width, y).into(), (width, height).into())
+            }
+            SplitState::V => {
+                let width = w;
+                let height = h / 2;
+                ((x, y + height).into(), (width, height).into())
+            }
+        };
+
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
+
+        window.toplevel().with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Resizing);
+            state.size = Some(size);
+        });
+        window.toplevel().send_configure();
+        windowpre.toplevel().with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Resizing);
+            state.size = Some(size);
+        });
+        windowpre.toplevel().send_configure();
+        self.space.map_element(window, point, true);
+
+        Some(())
+    }
+
+    #[allow(dead_code)]
+    fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
+        self.surface_under_pointer(&self.pointer)
+    }
+
+    fn current_activewindow_rectangle(
+        &self,
+        surface: &WlSurface
+    ) -> Option<Window> {
+        let window = self.space.elements().find(|w| {
+            w.toplevel()
+                .current_state()
+                .states
+                .contains(xdg_toplevel::State::Activated)
+        })?;
+        if window.toplevel().wl_surface() == surface {
+            return None;
+        }
+        Some(window.clone())
+    }
+
+    fn current_screen_rectangle(&self) -> Option<Rectangle<i32, Logical>> {
+        let output = self
+            .space
+            .output_under(self.pointer.current_location())
+            .next()?;
+        self.space.output_geometry(&output)
     }
 }
