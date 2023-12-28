@@ -165,9 +165,8 @@ impl SmallCage {
             })
     }
 
-    pub fn publish_commit(&mut self) {
+    pub fn resize_elements(&mut self) {
         for w in self.space.elements() {
-            //w.toplevel().send_configure();
             self.full_screen_commit(w.toplevel().wl_surface());
         }
     }

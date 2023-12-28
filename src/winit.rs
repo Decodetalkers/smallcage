@@ -71,7 +71,7 @@ pub fn init_winit(
                         None,
                         None,
                     );
-                    state.publish_commit();
+                    state.resize_elements();
                 }
                 WinitEvent::Input(event) => state.process_input_event(event),
                 WinitEvent::Redraw => {
