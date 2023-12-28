@@ -2,7 +2,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
     delegate_xdg_activation,
-    desktop::{Space, Window, WindowSurfaceType},
+    desktop::{PopupManager, Space, Window, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
@@ -33,6 +33,7 @@ pub struct SmallCage {
     pub display_handle: DisplayHandle,
 
     pub space: Space<Window>,
+    pub popups: PopupManager,
     pub loop_signal: LoopSignal,
 
     // Smithay State
@@ -90,8 +91,10 @@ impl SmallCage {
 
             display_handle: dh,
 
+            popups: PopupManager::default(),
             space,
             loop_signal,
+
             socket_name,
 
             compositor_state,

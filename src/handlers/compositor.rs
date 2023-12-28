@@ -41,6 +41,8 @@ impl CompositorHandler for SmallCage {
             }
         };
         self.handle_commit(surface);
+        self.handle_popup_commit(surface);
+        self.popups.commit(surface);
     }
 }
 

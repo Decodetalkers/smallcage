@@ -1,6 +1,6 @@
 use smithay::{
     delegate_xdg_shell,
-    desktop::Window,
+    desktop::{PopupKind, Window},
     reexports::{
         wayland_protocols::xdg::shell::server::xdg_toplevel,
         wayland_server::{
@@ -12,8 +12,8 @@ use smithay::{
     wayland::{
         compositor::with_states,
         shell::xdg::{
-            PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
-            XdgToplevelSurfaceData,
+            PopupSurface, PositionerState, ToplevelSurface, XdgPopupSurfaceData, XdgShellHandler,
+            XdgShellState, XdgToplevelSurfaceData,
         },
     },
 };
@@ -30,8 +30,18 @@ impl XdgShellHandler for SmallCage {
         self.space.map_element(window, (0, 0), true);
     }
 
-    fn new_popup(&mut self, _surface: PopupSurface, _positioner: PositionerState) {
+    fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
         // TODO: Popup handling using PopupManager
+        surface.with_pending_state(|state| {
+            // NOTE: This is not really necessary as the default geometry
+            // is already set the same way, but for demonstrating how
+            // to set the initial popup geometry this code is left as
+            // an example
+            state.geometry = positioner.get_geometry();
+        });
+        if let Err(err) = self.popups.track_popup(PopupKind::from(surface)) {
+            tracing::warn!("Failed to track popup: {}", err);
+        }
     }
 
     fn grab(&mut self, _surface: PopupSurface, _seat: wl_seat::WlSeat, _serial: Serial) {
@@ -105,5 +115,27 @@ impl SmallCage {
             state.fullscreen_output = Some(wl_output);
         });
         toplevelsurface.send_configure();
+    }
+    pub fn handle_popup_commit(&self, surface: &WlSurface) {
+        if let Some(popup) = self.popups.find_popup(surface) {
+            // TODO: input method
+            let PopupKind::Xdg(ref popup) = popup else {
+                return;
+            };
+            let initial_configure_sent = with_states(surface, |states| {
+                states
+                    .data_map
+                    .get::<XdgPopupSurfaceData>()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .initial_configure_sent
+            });
+            if !initial_configure_sent {
+                // NOTE: This should never fail as the initial configure is always
+                // allowed.
+                popup.send_configure().expect("initial configure failed");
+            }
+        };
     }
 }
