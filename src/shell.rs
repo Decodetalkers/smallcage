@@ -28,6 +28,7 @@ impl PartialEq for WindowElement {
 }
 
 impl WindowElement {
+    #[allow(unused)]
     pub fn remap_element(&self, space: &mut Space<Self>) {
         let Some(position) = space.element_location(self) else {
             return;
@@ -84,7 +85,7 @@ impl WindowElement {
         self.window
             .send_frame(output, time, throttle, primary_scan_out_output)
     }
-
+    #[allow(unused)]
     pub fn wl_surface(&self) -> Option<wl_surface::WlSurface> {
         self.window.wl_surface()
     }

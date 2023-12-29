@@ -9,7 +9,8 @@ use smithay::reexports::{
     calloop::EventLoop,
     wayland_server::{Display, DisplayHandle},
 };
-pub use state::SmallCage;
+
+use state::SmallCage;
 
 pub struct CalloopData {
     state: SmallCage,
