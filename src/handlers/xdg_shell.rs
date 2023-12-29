@@ -225,10 +225,7 @@ impl SmallCage {
         Some(())
     }
 
-    #[allow(dead_code)]
-    fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
-        self.surface_under_pointer(&self.pointer)
-    }
+
 
     fn current_activewindow_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
         let window = self.space.elements().find(|w| {

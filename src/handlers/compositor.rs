@@ -6,6 +6,7 @@ use smithay::{
         protocol::{wl_buffer, wl_surface::WlSurface},
         Client,
     },
+    utils::{Logical, Point},
     wayland::{
         buffer::BufferHandler,
         compositor::{
@@ -40,6 +41,7 @@ impl CompositorHandler for SmallCage {
                 window.on_commit();
             }
         };
+        self.handle_focus_change();
         self.handle_commit(surface);
         self.handle_popup_commit(surface);
         self.popups.commit(surface);
@@ -58,3 +60,19 @@ impl ShmHandler for SmallCage {
 
 delegate_compositor!(SmallCage);
 delegate_shm!(SmallCage);
+
+impl SmallCage {
+    fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
+        self.surface_under_pointer(&self.pointer)
+    }
+    fn handle_focus_change(&mut self) -> Option<()> {
+        let (surface, _) = self.find_current_select_surface()?;
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == &surface)
+            .cloned()?;
+        window.remap_element(&mut self.space);
+        Some(())
+    }
+}
