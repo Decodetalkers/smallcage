@@ -1,6 +1,6 @@
 use smithay::{
     delegate_xdg_shell,
-    desktop::{PopupKind, Window},
+    desktop::{space::SpaceElement, PopupKind},
     reexports::{
         wayland_protocols::xdg::shell::server::xdg_toplevel,
         wayland_server::{
@@ -18,7 +18,7 @@ use smithay::{
     },
 };
 
-use crate::{state::SplitState, SmallCage};
+use crate::{shell::WindowElement, state::SplitState, SmallCage};
 
 impl XdgShellHandler for SmallCage {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
@@ -26,7 +26,7 @@ impl XdgShellHandler for SmallCage {
     }
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
-        let window = Window::new(surface);
+        let window = WindowElement::new(surface);
         self.space.map_element(window, (0, 0), false);
     }
 
@@ -92,13 +92,19 @@ impl SmallCage {
             window.toplevel().send_configure();
         } else if isconfigured {
             self.resize_element_commit(surface);
-            //self.full_screen_commit(surface);
         }
 
         Some(())
     }
 
     fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)?;
+        if window.is_init {
+            return None;
+        }
         match self.current_activewindow_rectangle(surface) {
             Some(rec) => self.map_with_split(surface, rec),
             None => self.map_one_element(surface),
@@ -169,15 +175,17 @@ impl SmallCage {
             state.states.set(xdg_toplevel::State::Resizing);
             state.size = Some((w, h).into());
         });
-        window.toplevel().send_configure();
-        self.space.map_element(window, loc, true);
+        let mut fin_window = window.clone();
+        fin_window.set_inited();
+        fin_window.toplevel().send_configure();
+        self.space.map_element(fin_window, loc, true);
 
         Some(())
     }
 
-    fn map_with_split(&mut self, surface: &WlSurface, windowpre: Window) -> Option<()> {
+    fn map_with_split(&mut self, surface: &WlSurface, windowpre: WindowElement) -> Option<()> {
         let rec = windowpre.geometry();
-        let (x, y) = rec.loc.into();
+        let (x, y) = self.space.element_location(&windowpre)?.into();
         let (w, h) = rec.size.into();
 
         let (point, size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
@@ -204,12 +212,16 @@ impl SmallCage {
             state.size = Some(size);
         });
         window.toplevel().send_configure();
+        let mut fin_window = window.clone();
+        fin_window.set_inited();
+        tracing::info!("{:?}", point);
+        self.space.map_element(fin_window, point, false);
+
         windowpre.toplevel().with_pending_state(|state| {
             state.states.set(xdg_toplevel::State::Resizing);
             state.size = Some(size);
         });
         windowpre.toplevel().send_configure();
-        self.space.map_element(window, point, true);
 
         Some(())
     }
@@ -219,10 +231,7 @@ impl SmallCage {
         self.surface_under_pointer(&self.pointer)
     }
 
-    fn current_activewindow_rectangle(
-        &self,
-        surface: &WlSurface
-    ) -> Option<Window> {
+    fn current_activewindow_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
         let window = self.space.elements().find(|w| {
             w.toplevel()
                 .current_state()

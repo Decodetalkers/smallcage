@@ -2,7 +2,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
     delegate_xdg_activation,
-    desktop::{PopupManager, Space, Window, WindowSurfaceType},
+    desktop::{PopupManager, Space, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
@@ -24,6 +24,7 @@ use smithay::{
     },
 };
 
+use crate::shell::WindowElement;
 use crate::CalloopData;
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -33,14 +34,13 @@ pub enum SplitState {
     V,
 }
 
-
 pub struct SmallCage {
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
 
     pub display_handle: DisplayHandle,
 
-    pub space: Space<Window>,
+    pub space: Space<WindowElement>,
     pub popups: PopupManager,
     pub loop_signal: LoopSignal,
 
@@ -118,7 +118,6 @@ impl SmallCage {
 
             seat,
             pointer,
-
 
             splitstate: SplitState::default(),
         }
