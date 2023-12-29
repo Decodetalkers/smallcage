@@ -214,7 +214,6 @@ impl SmallCage {
         window.toplevel().send_configure();
         let mut fin_window = window.clone();
         fin_window.set_inited();
-        tracing::info!("{:?}", point);
         self.space.map_element(fin_window, point, false);
 
         windowpre.toplevel().with_pending_state(|state| {
