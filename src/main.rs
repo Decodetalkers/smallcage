@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     event_loop.run(None, &mut data, move |_| {
-        // Smallvil is running
+        //w.state.handle_focus_change();
     })?;
 
     Ok(())

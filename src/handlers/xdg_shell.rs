@@ -225,8 +225,6 @@ impl SmallCage {
         Some(())
     }
 
-
-
     fn current_activewindow_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
         let window = self.space.elements().find(|w| {
             w.toplevel()

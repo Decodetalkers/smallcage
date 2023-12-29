@@ -2,7 +2,7 @@ use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
     delegate_xdg_activation,
-    desktop::{PopupManager, Space, WindowSurfaceType},
+    desktop::{PopupManager, Space, WindowSurfaceType, PopupKind, space::SpaceElement},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
@@ -12,7 +12,7 @@ use smithay::{
             Display, DisplayHandle,
         },
     },
-    utils::{Logical, Point},
+    utils::{Logical, Point, Rectangle},
     wayland::{
         compositor::{CompositorClientState, CompositorState},
         output::OutputManagerState,
@@ -20,8 +20,8 @@ use smithay::{
         shell::xdg::XdgShellState,
         shm::ShmState,
         socket::ListeningSocketSource,
-        xdg_activation::{XdgActivationHandler, XdgActivationState},
-    },
+        xdg_activation::{XdgActivationHandler, XdgActivationState}, input_method::{InputMethodHandler, PopupSurface},
+    }, delegate_text_input_manager, delegate_input_method_manager,
 };
 
 use crate::shell::WindowElement;
@@ -215,3 +215,28 @@ impl ClientData for ClientState {
     fn initialized(&self, _client_id: ClientId) {}
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {}
 }
+
+
+delegate_text_input_manager!(SmallCage);
+
+impl InputMethodHandler for SmallCage {
+    fn new_popup(&mut self, surface: PopupSurface) {
+        if let Err(err) = self.popups.track_popup(PopupKind::from(surface)) {
+            tracing::warn!("Failed to track popup: {}", err);
+        }
+    }
+
+    fn dismiss_popup(&mut self, surface: PopupSurface) {
+        if let Some(parent) = surface.get_parent().map(|parent| parent.surface.clone()) {
+            let _ = PopupManager::dismiss_popup(&parent, &PopupKind::from(surface));
+        }
+    }
+
+    fn parent_geometry(&self, parent: &WlSurface) -> Rectangle<i32, smithay::utils::Logical> {
+        self.space
+            .elements()
+            .find_map(|window| (window.wl_surface().as_ref() == Some(parent)).then(|| window.geometry()))
+            .unwrap_or_default()
+    }
+}
+delegate_input_method_manager!(SmallCage);
