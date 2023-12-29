@@ -202,13 +202,13 @@ impl SmallCage {
 }
 fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Option<KeyAction> {
     let keysym: u32 = keysym.into();
-    if modifiers.ctrl && modifiers.alt && keysym == xkb::KEY_BackSpace.into()
-        || modifiers.logo && keysym == xkb::KEY_q.into()
+    if modifiers.ctrl && modifiers.alt && keysym == xkb::KEY_BackSpace
+        || modifiers.logo && keysym == xkb::KEY_q
     {
         // ctrl+alt+backspace = quit
         // logo + q = quit
         Some(KeyAction::Quit)
-    } else if (xkb::KEY_XF86Switch_VT_1..=xkb::KEY_XF86Switch_VT_12).contains(&keysym.into()) {
+    } else if (xkb::KEY_XF86Switch_VT_1..=xkb::KEY_XF86Switch_VT_12).contains(&keysym) {
         // VTSwitch
         Some(KeyAction::VtSwitch(
             (keysym - xkb::KEY_XF86Switch_VT_1 + 1) as i32,

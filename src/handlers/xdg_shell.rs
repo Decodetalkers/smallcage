@@ -248,6 +248,6 @@ impl SmallCage {
             .space
             .output_under(self.pointer.current_location())
             .next()?;
-        self.space.output_geometry(&output)
+        self.space.output_geometry(output)
     }
 }
