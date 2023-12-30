@@ -30,6 +30,10 @@ impl XdgShellHandler for SmallCage {
         self.space.map_element(window, (0, 0), false);
     }
 
+    // TODO: this need to record the place window is destoried
+    // and place other windows
+    #[allow(unused)]
+    fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {}
     fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
         // TODO: Popup handling using PopupManager
         surface.with_pending_state(|state| {
