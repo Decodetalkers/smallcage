@@ -176,7 +176,6 @@ impl SmallCage {
             .find(|w| w.toplevel().wl_surface() == surface)
             .cloned()?;
         window.toplevel().with_pending_state(|state| {
-            state.states.set(xdg_toplevel::State::Resizing);
             state.size = Some((w, h).into());
         });
         let mut fin_window = window.clone();
@@ -212,7 +211,6 @@ impl SmallCage {
             .cloned()?;
 
         window.toplevel().with_pending_state(|state| {
-            state.states.set(xdg_toplevel::State::Resizing);
             state.size = Some(size);
         });
         window.toplevel().send_configure();
@@ -221,7 +219,6 @@ impl SmallCage {
         self.space.map_element(fin_window, point, false);
 
         windowpre.toplevel().with_pending_state(|state| {
-            state.states.set(xdg_toplevel::State::Resizing);
             state.size = Some(size);
         });
         windowpre.toplevel().send_configure();
