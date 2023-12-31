@@ -1,8 +1,8 @@
 use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
-    delegate_xdg_activation,
-    desktop::{PopupManager, Space, WindowSurfaceType, PopupKind, space::SpaceElement},
+    delegate_input_method_manager, delegate_text_input_manager, delegate_xdg_activation,
+    desktop::{space::SpaceElement, PopupKind, PopupManager, Space, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
@@ -12,16 +12,17 @@ use smithay::{
             Display, DisplayHandle,
         },
     },
-    utils::{Logical, Point, Rectangle},
+    utils::{Logical, Physical, Point, Rectangle, Size},
     wayland::{
         compositor::{CompositorClientState, CompositorState},
+        input_method::{InputMethodHandler, PopupSurface},
         output::OutputManagerState,
         selection::data_device::DataDeviceState,
         shell::xdg::XdgShellState,
         shm::ShmState,
         socket::ListeningSocketSource,
-        xdg_activation::{XdgActivationHandler, XdgActivationState}, input_method::{InputMethodHandler, PopupSurface},
-    }, delegate_text_input_manager, delegate_input_method_manager,
+        xdg_activation::{XdgActivationHandler, XdgActivationState},
+    },
 };
 
 use crate::shell::WindowElement;
@@ -183,10 +184,36 @@ impl SmallCage {
             })
     }
 
-    #[allow(unused)]
-    pub fn resize_elements(&mut self) {
-        for w in self.space.elements() {
-            //self.full_screen_commit(w.toplevel().wl_surface());
+    // FIXME: it is not good enough
+    pub fn resize_elements(
+        &mut self,
+        origin_size: Size<i32, Physical>,
+        after_size: Size<i32, Physical>,
+    ) {
+        tracing::info!("origin {:?}",origin_size);
+        tracing::info!("after {:?}",after_size);
+        let before_w = origin_size.w;
+        let after_w = after_size.w;
+        let before_h = origin_size.h;
+        let after_h = origin_size.h;
+        let windows: Vec<WindowElement> = self.space.elements().into_iter().cloned().collect();
+        for winit in windows {
+            let Some(pos) = self.space.element_location(&winit) else {
+                continue;
+            };
+            let (x, y) = pos.into();
+            let (w, h) = winit.geometry().size.into();
+            tracing::info!("origin_size :{}, {}", w, h);
+            let newsize: Size<i32, Logical> =
+                (w * after_w / before_w, h * after_h / before_h).into();
+            tracing::info!("{:?}", newsize);
+            let newpoint: Point<i32, Logical> =
+                (x * after_w / before_w, y * after_h  / before_h).into();
+            winit.toplevel().with_pending_state(|state| {
+                state.size = Some(newsize);
+            });
+            winit.toplevel().send_configure();
+            self.space.map_element(winit, newpoint, false);
         }
     }
 }
@@ -216,7 +243,6 @@ impl ClientData for ClientState {
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {}
 }
 
-
 delegate_text_input_manager!(SmallCage);
 
 impl InputMethodHandler for SmallCage {
@@ -235,7 +261,9 @@ impl InputMethodHandler for SmallCage {
     fn parent_geometry(&self, parent: &WlSurface) -> Rectangle<i32, smithay::utils::Logical> {
         self.space
             .elements()
-            .find_map(|window| (window.wl_surface().as_ref() == Some(parent)).then(|| window.geometry()))
+            .find_map(|window| {
+                (window.wl_surface().as_ref() == Some(parent)).then(|| window.geometry())
+            })
             .unwrap_or_default()
     }
 }
