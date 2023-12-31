@@ -228,14 +228,12 @@ impl SmallCage {
 
         Some(())
     }
-
+    fn find_current_select_window(&self) -> Option<&WindowElement> {
+        let pos = self.pointer.current_location();
+        Some(self.space.element_under(pos)?.0)
+    }
     fn current_activewindow_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
-        let window = self.space.elements().find(|w| {
-            w.toplevel()
-                .current_state()
-                .states
-                .contains(xdg_toplevel::State::Activated)
-        })?;
+        let window = self.find_current_select_window()?;
         if window.toplevel().wl_surface() == surface {
             return None;
         }

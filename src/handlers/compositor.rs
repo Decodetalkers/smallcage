@@ -63,7 +63,7 @@ delegate_shm!(SmallCage);
 
 #[allow(unused)]
 impl SmallCage {
-    fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
+    pub fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
         self.surface_under_pointer(&self.pointer)
     }
     pub fn handle_focus_change(&mut self) -> Option<()> {
