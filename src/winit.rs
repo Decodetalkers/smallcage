@@ -62,7 +62,6 @@ pub fn init_winit(
 
             match event {
                 WinitEvent::Resized { size, .. } => {
-                    let originsize = output.current_mode().unwrap().size;
                     output.change_current_state(
                         Some(Mode {
                             size,
@@ -72,7 +71,7 @@ pub fn init_winit(
                         None,
                         None,
                     );
-                    state.resize_elements(originsize, size);
+                    state.resize_elements(size);
                 }
                 WinitEvent::Input(event) => state.process_input_event(event),
                 WinitEvent::Redraw => {

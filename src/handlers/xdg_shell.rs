@@ -181,12 +181,16 @@ impl SmallCage {
         let mut fin_window = window.clone();
         fin_window.set_inited();
         fin_window.toplevel().send_configure();
+        fin_window.set_output_size(current_screen.size);
+        fin_window.set_element_size(current_screen.size);
+        fin_window.set_origin_pos(loc);
         self.space.map_element(fin_window, loc, true);
 
         Some(())
     }
 
     fn map_with_split(&mut self, surface: &WlSurface, windowpre: WindowElement) -> Option<()> {
+        let current_screen = self.current_screen_rectangle()?;
         let rec = windowpre.geometry();
         let (x, y) = self.space.element_location(&windowpre)?.into();
         let (w, h) = rec.size.into();
@@ -214,14 +218,22 @@ impl SmallCage {
             state.size = Some(size);
         });
         window.toplevel().send_configure();
+
         let mut fin_window = window.clone();
         fin_window.set_inited();
+        fin_window.set_element_size(size);
+        fin_window.set_output_size(current_screen.size);
+        fin_window.set_origin_pos(point);
         self.space.map_element(fin_window, point, false);
 
-        windowpre.toplevel().with_pending_state(|state| {
+        let mut window_pre = windowpre.clone();
+        window_pre.toplevel().with_pending_state(|state| {
             state.size = Some(size);
         });
-        windowpre.toplevel().send_configure();
+        window_pre.toplevel().send_configure();
+        window_pre.set_output_size(current_screen.size);
+        window_pre.set_element_size(size);
+        window_pre.remap_element(&mut self.space);
 
         Some(())
     }
@@ -237,6 +249,7 @@ impl SmallCage {
         Some(window.clone())
     }
 
+    // TODO:?
     fn current_screen_rectangle(&self) -> Option<Rectangle<i32, Logical>> {
         let output = self
             .space

@@ -185,30 +185,17 @@ impl SmallCage {
     }
 
     // FIXME: it is not good enough
-    pub fn resize_elements(
-        &mut self,
-        origin_size: Size<i32, Physical>,
-        after_size: Size<i32, Physical>,
-    ) {
-        tracing::info!("origin {:?}",origin_size);
-        tracing::info!("after {:?}",after_size);
-        let before_w = origin_size.w;
+    pub fn resize_elements(&mut self, after_size: Size<i32, Physical>) {
         let after_w = after_size.w;
-        let before_h = origin_size.h;
-        let after_h = origin_size.h;
+        let after_h = after_size.h;
         let windows: Vec<WindowElement> = self.space.elements().into_iter().cloned().collect();
         for winit in windows {
-            let Some(pos) = self.space.element_location(&winit) else {
-                continue;
-            };
-            let (x, y) = pos.into();
-            let (w, h) = winit.geometry().size.into();
-            tracing::info!("origin_size :{}, {}", w, h);
-            let newsize: Size<i32, Logical> =
-                (w * after_w / before_w, h * after_h / before_h).into();
-            tracing::info!("{:?}", newsize);
+            let (origin_x, origin_y) = winit.origin_pos().into();
+            let (out_w, out_h) = winit.output_size().into();
+            let (w_w, w_h) = winit.element_size().into();
+            let newsize: Size<i32, Logical> = (w_w * after_w / out_w, w_h * after_h / out_h).into();
             let newpoint: Point<i32, Logical> =
-                (x * after_w / before_w, y * after_h  / before_h).into();
+                (after_w * origin_x / out_w, after_h * origin_y / out_h).into();
             winit.toplevel().with_pending_state(|state| {
                 state.size = Some(newsize);
             });

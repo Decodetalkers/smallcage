@@ -11,7 +11,7 @@ use smithay::{
     output::Output,
     reexports::wayland_server::protocol::wl_surface,
     render_elements,
-    utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale},
+    utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale, Size},
     wayland::{compositor::SurfaceData, seat::WaylandFocus, shell::xdg::ToplevelSurface},
 };
 
@@ -19,6 +19,9 @@ use smithay::{
 pub struct WindowElement {
     window: Window,
     pub is_init: bool,
+    output_size: Size<i32, Logical>,
+    element_size: Size<i32, Logical>,
+    origin_pos: Point<i32, Logical>,
 }
 
 impl PartialEq for WindowElement {
@@ -28,7 +31,6 @@ impl PartialEq for WindowElement {
 }
 
 impl WindowElement {
-    #[allow(unused)]
     pub fn remap_element(&self, space: &mut Space<Self>) {
         let Some(position) = space.element_location(self) else {
             return;
@@ -39,6 +41,29 @@ impl WindowElement {
     pub fn set_inited(&mut self) {
         self.is_init = true;
     }
+
+    pub fn output_size(&self) -> Size<i32, Logical> {
+        self.output_size
+    }
+
+    pub fn element_size(&self) -> Size<i32, Logical> {
+        self.element_size
+    }
+
+    pub fn origin_pos(&self) -> Point<i32, Logical> {
+        self.origin_pos
+    }
+
+    pub fn set_output_size(&mut self, size: Size<i32, Logical>) {
+        self.output_size = size;
+    }
+
+    pub fn set_element_size(&mut self, size: Size<i32, Logical>) {
+        self.element_size = size;
+    }
+    pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
+        self.origin_pos = point
+    }
 }
 
 impl WindowElement {
@@ -46,6 +71,9 @@ impl WindowElement {
         WindowElement {
             window: Window::new(surface),
             is_init: false,
+            output_size: Default::default(),
+            element_size: Default::default(),
+            origin_pos: Default::default()
         }
     }
 
