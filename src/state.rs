@@ -1,7 +1,8 @@
 use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
-    delegate_input_method_manager, delegate_text_input_manager, delegate_xdg_activation,
+    delegate_input_method_manager, delegate_text_input_manager, delegate_virtual_keyboard_manager,
+    delegate_xdg_activation,
     desktop::{space::SpaceElement, PopupKind, PopupManager, Space, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
@@ -15,12 +16,14 @@ use smithay::{
     utils::{Logical, Physical, Point, Rectangle, Size},
     wayland::{
         compositor::{CompositorClientState, CompositorState},
-        input_method::{InputMethodHandler, PopupSurface},
+        input_method::{InputMethodHandler, InputMethodManagerState, PopupSurface},
         output::OutputManagerState,
         selection::data_device::DataDeviceState,
         shell::xdg::XdgShellState,
         shm::ShmState,
         socket::ListeningSocketSource,
+        text_input::TextInputManagerState,
+        virtual_keyboard::VirtualKeyboardManagerState,
         xdg_activation::{XdgActivationHandler, XdgActivationState},
     },
 };
@@ -74,6 +77,10 @@ impl SmallCage {
         let data_device_state = DataDeviceState::new::<Self>(&dh);
 
         let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
+
+        TextInputManagerState::new::<Self>(&dh);
+        InputMethodManagerState::new::<Self, _>(&dh, |_| true);
+        VirtualKeyboardManagerState::new::<Self, _>(&dh, |_| true);
 
         // A seat is a group of keyboards, pointer and touch devices.
         // A seat typically has a pointer and maintains a keyboard focus and a pointer focus.
@@ -188,7 +195,7 @@ impl SmallCage {
     pub fn resize_elements(&mut self, after_size: Size<i32, Physical>) {
         let after_w = after_size.w;
         let after_h = after_size.h;
-        let windows: Vec<WindowElement> = self.space.elements().into_iter().cloned().collect();
+        let windows: Vec<WindowElement> = self.space.elements().cloned().collect();
         for winit in windows {
             let (origin_x, origin_y) = winit.origin_pos().into();
             let (out_w, out_h) = winit.output_size().into();
@@ -231,6 +238,7 @@ impl ClientData for ClientState {
 }
 
 delegate_text_input_manager!(SmallCage);
+delegate_virtual_keyboard_manager!(SmallCage);
 
 impl InputMethodHandler for SmallCage {
     fn new_popup(&mut self, surface: PopupSurface) {

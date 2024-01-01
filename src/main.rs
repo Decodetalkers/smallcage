@@ -1,9 +1,9 @@
 mod handlers;
 
 mod input;
+mod shell;
 mod state;
 mod winit;
-mod shell;
 
 use smithay::reexports::{
     calloop::EventLoop,

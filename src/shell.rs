@@ -73,7 +73,7 @@ impl WindowElement {
             is_init: false,
             output_size: Default::default(),
             element_size: Default::default(),
-            origin_pos: Default::default()
+            origin_pos: Default::default(),
         }
     }
 
