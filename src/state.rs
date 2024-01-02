@@ -7,10 +7,11 @@ use smithay::{
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
+        wayland_protocols::xdg::shell::server::xdg_toplevel,
         wayland_server::{
             backend::{ClientData, ClientId, DisconnectReason},
             protocol::wl_surface::WlSurface,
-            Display, DisplayHandle,
+            Display, DisplayHandle, Resource,
         },
     },
     utils::{Logical, Physical, Point, Rectangle, Size},
@@ -197,6 +198,15 @@ impl SmallCage {
         let after_h = after_size.h;
         let windows: Vec<WindowElement> = self.space.elements().cloned().collect();
         for winit in windows {
+            if winit
+                .toplevel()
+                .current_state()
+                .states
+                .contains(xdg_toplevel::State::Fullscreen)
+            {
+                self.full_screen_commit(winit.toplevel().wl_surface());
+                continue;
+            }
             let (origin_x, origin_y) = winit.origin_pos().into();
             let (out_w, out_h) = winit.output_size().into();
             let (w_w, w_h) = winit.element_size().into();
@@ -210,8 +220,29 @@ impl SmallCage {
             self.space.map_element(winit, newpoint, false);
         }
     }
-}
 
+    // this should commit when full is here
+    // TODO: very basic
+    fn full_screen_commit(&self, surface: &WlSurface) {
+        let output = self.space.outputs().next().unwrap();
+        let geometry = self.space.output_geometry(output).unwrap();
+        let window = self.space.elements().next().unwrap();
+        let toplevelsurface = window.toplevel();
+
+        let client = self.display_handle.get_client(surface.id()).unwrap();
+
+        let Some(wl_output) = output.client_outputs(&client).into_iter().next() else {
+            return;
+        };
+
+        toplevelsurface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Fullscreen);
+            state.size = Some(geometry.size);
+            state.fullscreen_output = Some(wl_output);
+        });
+        toplevelsurface.send_configure();
+    }
+}
 impl XdgActivationHandler for SmallCage {
     fn activation_state(&mut self) -> &mut XdgActivationState {
         &mut self.xdg_activation_state
