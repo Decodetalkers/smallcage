@@ -1,7 +1,10 @@
 use smithay::{
     delegate_xdg_shell,
     desktop::{space::SpaceElement, PopupKind},
-    reexports::wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
+    reexports::{
+        wayland_protocols::xdg::shell::server::xdg_toplevel,
+        wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
+    },
     utils::{Logical, Point, Rectangle, Serial, Size},
     wayland::{
         compositor::with_states,
@@ -227,6 +230,7 @@ impl SmallCage {
         Some(())
     }
 
+    #[allow(unused)]
     fn find_current_selected_element(&self, surface: &WlSurface) -> Option<&WindowElement> {
         let point = self.pointer.current_location();
         tracing::info!("{:?}", point);
@@ -236,8 +240,18 @@ impl SmallCage {
             .find(|w| w.toplevel().wl_surface() != surface)
     }
 
+    fn find_current_focused_element(&self, surface: &WlSurface) -> Option<&WindowElement> {
+        self.space.elements().find(|w| {
+            w.toplevel()
+                .current_state()
+                .states
+                .contains(xdg_toplevel::State::Activated)
+                && w.toplevel().wl_surface() != surface
+        })
+    }
+
     fn current_active_window_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
-        let window = self.find_current_selected_element(surface)?;
+        let window = self.find_current_focused_element(surface)?;
         Some(window.clone())
     }
 
@@ -358,7 +372,7 @@ impl SmallCage {
                     return false;
                 };
                 let (w, h) = w.get_pedding_size().into();
-                x >= start_x && x + w <= end_x && (y + h - start_y).abs() < 5
+                x >= start_x - 5 && x + w <= end_x - 5 && (y + h - start_y).abs() < 5
             })
             .cloned()
             .collect();
@@ -400,7 +414,7 @@ impl SmallCage {
                     return false;
                 };
                 let (w, _) = w.get_pedding_size().into();
-                x >= start_x && x + w <= end_x && (y - end_y).abs() < 5
+                x >= start_x - 5 && x + w <= end_x - 5 && (y - end_y).abs() < 5
             })
             .cloned()
             .collect();
@@ -442,7 +456,7 @@ impl SmallCage {
                     return false;
                 };
                 let (w, h) = w.get_pedding_size().into();
-                y >= start_y && y + h <= end_y && (x + w - start_x).abs() < 5
+                y >= start_y - 5 && y + h <= end_y + 5 && (x + w - start_x).abs() < 5
             })
             .cloned()
             .collect();
@@ -484,7 +498,7 @@ impl SmallCage {
                     return false;
                 };
                 let (_, h) = w.get_pedding_size().into();
-                y >= start_y && y + h <= end_y && (x - end_x).abs() < 5
+                y >= start_y - 5 && y + h <= end_y + 5 && (x - end_x).abs() < 5
             })
             .cloned()
             .collect();
