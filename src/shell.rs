@@ -22,6 +22,7 @@ pub struct WindowElement {
     output_size: Size<i32, Logical>,
     element_size: Size<i32, Logical>,
     origin_pos: Point<i32, Logical>,
+    pedding_size: Option<Size<i32, Logical>>,
 }
 
 impl PartialEq for WindowElement {
@@ -61,6 +62,19 @@ impl WindowElement {
     pub fn set_element_size(&mut self, size: Size<i32, Logical>) {
         self.element_size = size;
     }
+
+    pub fn has_pedding_size(&self) -> bool {
+        self.pedding_size.is_some()
+    }
+
+    pub fn set_pedding_size(&mut self, pedding_size: Option<Size<i32, Logical>>) {
+        self.pedding_size = pedding_size;
+    }
+
+    pub fn get_pedding_size(&self) -> Size<i32, Logical> {
+        self.pedding_size.unwrap_or(self.geometry().size)
+    }
+
     pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
         self.origin_pos = point
     }
@@ -74,6 +88,7 @@ impl WindowElement {
             output_size: Default::default(),
             element_size: Default::default(),
             origin_pos: Default::default(),
+            pedding_size: Default::default(),
         }
     }
 

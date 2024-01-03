@@ -21,7 +21,7 @@ impl XdgShellHandler for SmallCage {
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = WindowElement::new(surface);
-        self.space.map_element(window, (0, 0), false);
+        self.space.map_element(window, (0, 0), true);
     }
 
     // TODO: this need to record the place window is destoried
@@ -72,7 +72,7 @@ delegate_xdg_shell!(SmallCage);
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
     pub fn handle_commit(&mut self, surface: &WlSurface) -> Option<()> {
-        let window = self
+        let mut window = self
             .space
             .elements()
             .find(|w| w.toplevel().wl_surface() == surface)
@@ -96,6 +96,12 @@ impl SmallCage {
                 .unwrap()
                 .configured
         });
+
+        if window.has_pedding_size() {
+            window.set_pedding_size(None);
+            window.remap_element(&mut self.space);
+        }
+
         if !initial_configure_sent {
             window.toplevel().send_configure();
         } else if isconfigured {
@@ -113,7 +119,7 @@ impl SmallCage {
         if window.is_init {
             return None;
         }
-        match self.current_activewindow_rectangle(surface) {
+        match self.current_active_window_rectangle(surface) {
             Some(rec) => self.map_with_split(surface, rec),
             None => self.map_one_element(surface),
         }
@@ -220,15 +226,18 @@ impl SmallCage {
 
         Some(())
     }
-    fn find_current_select_window(&self) -> Option<&WindowElement> {
-        let pos = self.pointer.current_location();
-        Some(self.space.element_under(pos)?.0)
+
+    fn find_current_selected_element(&self, surface: &WlSurface) -> Option<&WindowElement> {
+        let point = self.pointer.current_location();
+        tracing::info!("{:?}", point);
+        self.space
+            .elements()
+            .filter(|e| e.bbox().to_f64().contains(point))
+            .find(|w| w.toplevel().wl_surface() != surface)
     }
-    fn current_activewindow_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
-        let window = self.find_current_select_window()?;
-        if window.toplevel().wl_surface() == surface {
-            return None;
-        }
+
+    fn current_active_window_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
+        let window = self.find_current_selected_element(surface)?;
         Some(window.clone())
     }
 
@@ -252,7 +261,7 @@ impl SmallCage {
             return;
         };
         let (x, y) = pos.into();
-        let (w, h) = window.geometry().size.into();
+        let (w, h) = window.get_pedding_size().into();
         let (rb_x, rb_y) = (x + w, y + h);
         self.space.unmap_elem(&window);
         if let Some(mut elements) = self.find_up_element((x, y), (rb_x, rb_y)) {
@@ -260,10 +269,11 @@ impl SmallCage {
                 let Some(ori_pos) = self.space.element_location(&element) else {
                     continue;
                 };
-                let (ow, oh) = element.geometry().size.into();
+                let (ow, oh) = element.get_pedding_size().into();
                 let newsize: Size<i32, Logical> = (ow, oh + h).into();
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
+                element.set_pedding_size(Some(newsize));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
@@ -279,10 +289,11 @@ impl SmallCage {
                     continue;
                 };
                 let (o_x, _) = ori_pos.into();
-                let (ow, oh) = element.geometry().size.into();
+                let (ow, oh) = element.get_pedding_size().into();
                 let newsize: Size<i32, Logical> = (ow, oh + h).into();
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
+                element.set_pedding_size(Some(newsize));
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
                 });
@@ -296,10 +307,11 @@ impl SmallCage {
                 let Some(ori_pos) = self.space.element_location(&element) else {
                     continue;
                 };
-                let (ow, oh) = element.geometry().size.into();
+                let (ow, oh) = element.get_pedding_size().into();
                 let newsize: Size<i32, Logical> = (ow + w, oh).into();
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
+                element.set_pedding_size(Some(newsize));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
@@ -315,10 +327,11 @@ impl SmallCage {
                     continue;
                 };
                 let (_, o_y) = ori_pos.into();
-                let (ow, oh) = element.geometry().size.into();
+                let (ow, oh) = element.get_pedding_size().into();
                 let newsize: Size<i32, Logical> = (ow + w, oh).into();
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
+                element.set_pedding_size(Some(newsize));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
@@ -344,7 +357,7 @@ impl SmallCage {
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (w, h) = w.geometry().size.into();
+                let (w, h) = w.get_pedding_size().into();
                 x >= start_x && x + w <= end_x && (y + h - start_y).abs() < 5
             })
             .cloned()
@@ -364,7 +377,7 @@ impl SmallCage {
                 let Some(Point { x, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (w, _) = w.geometry().size.into();
+                let (w, _) = w.get_pedding_size().into();
                 (x + w - end_x).abs() < 5
             })
             .is_some();
@@ -386,7 +399,7 @@ impl SmallCage {
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (w, _) = w.geometry().size.into();
+                let (w, _) = w.get_pedding_size().into();
                 x >= start_x && x + w <= end_x && (y - end_y).abs() < 5
             })
             .cloned()
@@ -406,7 +419,7 @@ impl SmallCage {
                 let Some(Point { x, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (w, _) = w.geometry().size.into();
+                let (w, _) = w.get_pedding_size().into();
                 (x + w - end_x).abs() < 5
             })
             .is_some();
@@ -428,7 +441,7 @@ impl SmallCage {
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (w, h) = w.geometry().size.into();
+                let (w, h) = w.get_pedding_size().into();
                 y >= start_y && y + h <= end_y && (x + w - start_x).abs() < 5
             })
             .cloned()
@@ -448,7 +461,7 @@ impl SmallCage {
                 let Some(Point { y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (_, h) = w.geometry().size.into();
+                let (_, h) = w.get_pedding_size().into();
                 (y + h - end_y).abs() < 5
             })
             .is_some();
@@ -470,7 +483,7 @@ impl SmallCage {
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (_, h) = w.geometry().size.into();
+                let (_, h) = w.get_pedding_size().into();
                 y >= start_y && y + h <= end_y && (x - end_x).abs() < 5
             })
             .cloned()
@@ -490,7 +503,7 @@ impl SmallCage {
                 let Some(Point { y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
-                let (_, h) = w.geometry().size.into();
+                let (_, h) = w.get_pedding_size().into();
                 (y + h - end_y).abs() < 5
             })
             .is_some();
