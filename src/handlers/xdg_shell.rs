@@ -57,6 +57,16 @@ impl XdgShellHandler for SmallCage {
         // TODO popup grabs
     }
 
+    #[allow(unused)]
+    fn resize_request(
+        &mut self,
+        surface: ToplevelSurface,
+        seat: wl_seat::WlSeat,
+        serial: Serial,
+        edges: xdg_toplevel::ResizeEdge,
+    ) {
+        // TODO:
+    }
     fn reposition_request(
         &mut self,
         _surface: PopupSurface,
