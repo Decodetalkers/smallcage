@@ -278,6 +278,7 @@ impl SmallCage {
         let (w, h) = window.get_pedding_size().into();
         let (rb_x, rb_y) = (x + w, y + h);
         self.space.unmap_elem(window);
+        tracing::info!("{x},{y}   {rb_x},{rb_y}");
         if let Some(mut elements) = self.find_up_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
                 let Some(ori_pos) = self.space.element_location(element) else {
@@ -312,7 +313,7 @@ impl SmallCage {
                     state.size = Some(newsize);
                 });
                 element.toplevel().send_configure();
-                self.space.map_element(element.clone(), (o_x, rb_y), true);
+                self.space.map_element(element.clone(), (o_x, y), true);
             }
             return;
         }
@@ -371,7 +372,7 @@ impl SmallCage {
                     return false;
                 };
                 let (w, h) = w.get_pedding_size().into();
-                x >= start_x - 5 && x + w <= end_x - 5 && (y + h - start_y).abs() < 5
+                x >= start_x - 5 && x + w <= end_x + 5 && (y + h - start_y).abs() < 5
             })
             .cloned()
             .collect();
@@ -407,7 +408,7 @@ impl SmallCage {
                     return false;
                 };
                 let (w, _) = w.get_pedding_size().into();
-                x >= start_x - 5 && x + w <= end_x - 5 && (y - end_y).abs() < 5
+                x >= start_x - 5 && x + w <= end_x + 5 && (y - end_y).abs() < 5
             })
             .cloned()
             .collect();
