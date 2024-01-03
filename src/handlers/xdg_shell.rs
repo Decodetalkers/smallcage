@@ -231,7 +231,6 @@ impl SmallCage {
     #[allow(unused)]
     fn find_current_selected_element(&self, surface: &WlSurface) -> Option<&WindowElement> {
         let point = self.pointer.current_location();
-        tracing::info!("{:?}", point);
         self.space
             .elements()
             .filter(|e| e.bbox().to_f64().contains(point))
@@ -276,7 +275,6 @@ impl SmallCage {
         let (w, h) = window.get_pedding_size().into();
         let (rb_x, rb_y) = (x + w, y + h);
         self.space.unmap_elem(window);
-        tracing::info!("{x},{y}   {rb_x},{rb_y}");
         if let Some(mut elements) = self.find_up_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
                 let Some(ori_pos) = self.space.element_location(element) else {
