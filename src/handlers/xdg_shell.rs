@@ -271,16 +271,16 @@ impl SmallCage {
         };
         let screen_size = current_screen.size;
         let Some(pos) = self.space.element_location(window) else {
-            self.space.unmap_elem(&window);
+            self.space.unmap_elem(window);
             return;
         };
         let (x, y) = pos.into();
         let (w, h) = window.get_pedding_size().into();
         let (rb_x, rb_y) = (x + w, y + h);
-        self.space.unmap_elem(&window);
+        self.space.unmap_elem(window);
         if let Some(mut elements) = self.find_up_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
-                let Some(ori_pos) = self.space.element_location(&element) else {
+                let Some(ori_pos) = self.space.element_location(element) else {
                     continue;
                 };
                 let (ow, oh) = element.get_pedding_size().into();
@@ -299,7 +299,7 @@ impl SmallCage {
         }
         if let Some(mut elements) = self.find_down_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
-                let Some(ori_pos) = self.space.element_location(&element) else {
+                let Some(ori_pos) = self.space.element_location(element) else {
                     continue;
                 };
                 let (o_x, _) = ori_pos.into();
@@ -318,7 +318,7 @@ impl SmallCage {
         }
         if let Some(mut elements) = self.find_left_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
-                let Some(ori_pos) = self.space.element_location(&element) else {
+                let Some(ori_pos) = self.space.element_location(element) else {
                     continue;
                 };
                 let (ow, oh) = element.get_pedding_size().into();
@@ -337,7 +337,7 @@ impl SmallCage {
         }
         if let Some(mut elements) = self.find_right_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
-                let Some(ori_pos) = self.space.element_location(&element) else {
+                let Some(ori_pos) = self.space.element_location(element) else {
                     continue;
                 };
                 let (_, o_y) = ori_pos.into();
@@ -353,7 +353,6 @@ impl SmallCage {
                 element.toplevel().send_configure();
                 self.space.map_element(element.clone(), (x, o_y), true);
             }
-            return;
         }
     }
 }
@@ -376,25 +375,19 @@ impl SmallCage {
             })
             .cloned()
             .collect();
-        let has_start_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { x, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                (x - start_x).abs() < 5
-            })
-            .is_some();
-        let has_end_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { x, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                let (w, _) = w.get_pedding_size().into();
-                (x + w - end_x).abs() < 5
-            })
-            .is_some();
+        let has_start_pos = elements.iter().any(|w| {
+            let Some(Point { x, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            (x - start_x).abs() < 5
+        });
+        let has_end_pos = elements.iter().any(|w| {
+            let Some(Point { x, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            let (w, _) = w.get_pedding_size().into();
+            (x + w - end_x).abs() < 5
+        });
         if !(has_start_pos && has_end_pos) {
             return None;
         }
@@ -418,25 +411,19 @@ impl SmallCage {
             })
             .cloned()
             .collect();
-        let has_start_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { x, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                (x - start_x).abs() < 5
-            })
-            .is_some();
-        let has_end_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { x, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                let (w, _) = w.get_pedding_size().into();
-                (x + w - end_x).abs() < 5
-            })
-            .is_some();
+        let has_start_pos = elements.iter().any(|w| {
+            let Some(Point { x, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            (x - start_x).abs() < 5
+        });
+        let has_end_pos = elements.iter().any(|w| {
+            let Some(Point { x, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            let (w, _) = w.get_pedding_size().into();
+            (x + w - end_x).abs() < 5
+        });
         if !(has_start_pos && has_end_pos) {
             return None;
         }
@@ -460,25 +447,19 @@ impl SmallCage {
             })
             .cloned()
             .collect();
-        let has_start_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { y, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                (y - start_y).abs() < 5
-            })
-            .is_some();
-        let has_end_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { y, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                let (_, h) = w.get_pedding_size().into();
-                (y + h - end_y).abs() < 5
-            })
-            .is_some();
+        let has_start_pos = elements.iter().any(|w| {
+            let Some(Point { y, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            (y - start_y).abs() < 5
+        });
+        let has_end_pos = elements.iter().any(|w| {
+            let Some(Point { y, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            let (_, h) = w.get_pedding_size().into();
+            (y + h - end_y).abs() < 5
+        });
         if !(has_start_pos && has_end_pos) {
             return None;
         }
@@ -502,25 +483,19 @@ impl SmallCage {
             })
             .cloned()
             .collect();
-        let has_start_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { y, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                (y - start_y).abs() < 5
-            })
-            .is_some();
-        let has_end_pos = elements
-            .iter()
-            .find(|w| {
-                let Some(Point { y, .. }) = self.space.element_location(w) else {
-                    return false;
-                };
-                let (_, h) = w.get_pedding_size().into();
-                (y + h - end_y).abs() < 5
-            })
-            .is_some();
+        let has_start_pos = elements.iter().any(|w| {
+            let Some(Point { y, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            (y - start_y).abs() < 5
+        });
+        let has_end_pos = elements.iter().any(|w| {
+            let Some(Point { y, .. }) = self.space.element_location(w) else {
+                return false;
+            };
+            let (_, h) = w.get_pedding_size().into();
+            (y + h - end_y).abs() < 5
+        });
         if !(has_start_pos && has_end_pos) {
             return None;
         }
