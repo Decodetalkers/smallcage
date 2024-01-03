@@ -27,8 +27,6 @@ impl XdgShellHandler for SmallCage {
         self.space.map_element(window, (0, 0), true);
     }
 
-    // TODO: this need to record the place window is destoried
-    // and place other windows
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
         let Some(window) = self
             .space
