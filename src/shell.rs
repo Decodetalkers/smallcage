@@ -19,6 +19,7 @@ use smithay::{
 pub struct WindowElement {
     window: Window,
     pub is_init: bool,
+    is_fixed_window: bool,
     output_size: Size<i32, Logical>,
     element_size: Size<i32, Logical>,
     origin_pos: Point<i32, Logical>,
@@ -41,6 +42,14 @@ impl WindowElement {
 
     pub fn set_inited(&mut self) {
         self.is_init = true;
+    }
+
+    pub fn is_fixed_window(&self) -> bool {
+        self.is_fixed_window
+    }
+
+    pub fn set_is_fixed_window(&mut self) {
+        self.is_fixed_window = true;
     }
 
     pub fn output_size(&self) -> Size<i32, Logical> {
@@ -85,6 +94,7 @@ impl WindowElement {
         WindowElement {
             window: Window::new(surface),
             is_init: false,
+            is_fixed_window: false,
             output_size: Default::default(),
             element_size: Default::default(),
             origin_pos: Default::default(),

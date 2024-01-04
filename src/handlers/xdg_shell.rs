@@ -24,7 +24,7 @@ impl XdgShellHandler for SmallCage {
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = WindowElement::new(surface);
-        self.space.map_element(window, (0, 0), true);
+        self.space.map_element(window, (30, 30), true);
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
@@ -118,20 +118,37 @@ impl SmallCage {
 
         let is_fixed_size = (max_size == min_size) && max_size != (0, 0).into();
 
-        tracing::info!("{}, {:?}, {:?}", is_fixed_size, max_size, min_size);
-
         if window.has_pedding_size() {
             window.set_pedding_size(None);
             window.remap_element(&mut self.space);
         }
 
         if !initial_configure_sent {
+            if is_fixed_size {
+                window.set_is_fixed_window();
+                window.remap_element(&mut self.space);
+            }
             window.toplevel().send_configure();
-        } else if isconfigured {
+        } else if isconfigured && !window.is_fixed_window() {
             self.resize_element_commit(surface);
+            self.active_untiled_elements();
         }
 
         Some(())
+    }
+
+    fn active_untiled_elements(&mut self) {
+        let elements: Vec<WindowElement> = self
+            .space
+            .elements()
+            .filter(|w| w.is_fixed_window())
+            .cloned()
+            .collect();
+        for el in elements {
+            el.set_activated(true);
+            el.toplevel().send_configure();
+            el.remap_element(&mut self.space);
+        }
     }
 
     fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
@@ -266,12 +283,20 @@ impl SmallCage {
                 .states
                 .contains(xdg_toplevel::State::Activated)
                 && w.toplevel().wl_surface() != surface
+                && !w.is_fixed_window()
         })
     }
 
     fn current_active_window_rectangle(&self, surface: &WlSurface) -> Option<WindowElement> {
-        let window = self.find_current_focused_element(surface)?;
-        Some(window.clone())
+        match self.find_current_focused_element(surface) {
+            None => self
+                .space
+                .elements()
+                .filter(|w| !w.is_fixed_window() && w.toplevel().wl_surface() != surface)
+                .last()
+                .cloned(),
+            value => value.cloned(),
+        }
     }
 
     // TODO:?
@@ -386,6 +411,9 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
+                if w.is_fixed_window() {
+                    return false;
+                }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
@@ -422,6 +450,9 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
+                if w.is_fixed_window() {
+                    return false;
+                }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
@@ -458,6 +489,9 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
+                if w.is_fixed_window() {
+                    return false;
+                }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
@@ -494,6 +528,9 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
+                if w.is_fixed_window() {
+                    return false;
+                }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
                     return false;
                 };
