@@ -82,7 +82,7 @@ delegate_xdg_shell!(SmallCage);
 
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
-    pub fn handle_commit(&mut self, surface: &WlSurface) -> Option<()> {
+    pub fn handle_xdg_commit(&mut self, surface: &WlSurface) -> Option<()> {
         let mut window = self
             .space
             .elements()
