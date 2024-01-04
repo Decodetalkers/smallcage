@@ -9,8 +9,8 @@ use smithay::{
     wayland::{
         compositor::with_states,
         shell::xdg::{
-            PopupSurface, PositionerState, ToplevelSurface, XdgPopupSurfaceData, XdgShellHandler,
-            XdgShellState, XdgToplevelSurfaceData,
+            PopupSurface, PositionerState, SurfaceCachedState, ToplevelSurface,
+            XdgPopupSurfaceData, XdgShellHandler, XdgShellState, XdgToplevelSurfaceData,
         },
     },
 };
@@ -107,6 +107,18 @@ impl SmallCage {
                 .unwrap()
                 .configured
         });
+
+        let max_size = with_states(surface, |states| {
+            states.cached_state.pending::<SurfaceCachedState>().max_size
+        });
+
+        let min_size = with_states(surface, |states| {
+            states.cached_state.pending::<SurfaceCachedState>().min_size
+        });
+
+        let is_fixed_size = (max_size == min_size) && max_size != (0, 0).into();
+
+        tracing::info!("{}, {:?}, {:?}", is_fixed_size, max_size, min_size);
 
         if window.has_pedding_size() {
             window.set_pedding_size(None);
