@@ -14,7 +14,7 @@ use smithay::{
             CompositorState,
         },
         shm::{ShmHandler, ShmState},
-    },
+    }, desktop::space::SpaceElement,
 };
 
 impl CompositorHandler for SmallCage {
@@ -73,6 +73,7 @@ impl SmallCage {
             .elements()
             .find(|w| w.toplevel().wl_surface() == &surface)
             .cloned()?;
+        window.set_activate(true);
         window.remap_element(&mut self.space);
         Some(())
     }

@@ -187,7 +187,7 @@ impl SmallCage {
             .element_under(pos)
             .and_then(|(window, location)| {
                 window
-                    .surface_under(pos - location.to_f64(), WindowSurfaceType::ALL)
+                    .surface_under(pos - location.to_f64(), WindowSurfaceType::TOPLEVEL)
                     .map(|(s, p)| (s, p + location))
             })
     }
