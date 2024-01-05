@@ -138,12 +138,13 @@ impl SmallCage {
     }
 
     fn active_untiled_elements(&mut self) {
-        let elements: Vec<WindowElement> = self
+        let mut elements: Vec<WindowElement> = self
             .space
             .elements()
             .filter(|w| w.is_fixed_window())
             .cloned()
             .collect();
+        elements.sort_by(|a, b| a.z_index().partial_cmp(&b.z_index()).unwrap());
         for el in elements {
             el.set_activated(true);
             el.toplevel().send_configure();
