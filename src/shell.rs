@@ -12,7 +12,11 @@ use smithay::{
     reexports::wayland_server::protocol::wl_surface,
     render_elements,
     utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale, Size},
-    wayland::{compositor::SurfaceData, seat::WaylandFocus, shell::xdg::ToplevelSurface},
+    wayland::{
+        compositor::{with_states, SurfaceData},
+        seat::WaylandFocus,
+        shell::xdg::{SurfaceCachedState, ToplevelSurface},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -86,6 +90,20 @@ impl WindowElement {
 
     pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
         self.origin_pos = point
+    }
+
+    #[allow(unused)]
+    pub fn max_size(&self) -> Size<i32, Logical> {
+        with_states(self.toplevel().wl_surface(), |states| {
+            states.cached_state.pending::<SurfaceCachedState>().max_size
+        })
+    }
+
+    #[allow(unused)]
+    pub fn min_size(&self) -> Size<i32, Logical> {
+        with_states(self.toplevel().wl_surface(), |states| {
+            states.cached_state.pending::<SurfaceCachedState>().min_size
+        })
     }
 }
 

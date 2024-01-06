@@ -2,6 +2,7 @@ use crate::{state::ClientState, SmallCage};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
+    desktop::space::SpaceElement,
     reexports::wayland_server::{
         protocol::{wl_buffer, wl_surface::WlSurface},
         Client,
@@ -14,7 +15,7 @@ use smithay::{
             CompositorState,
         },
         shm::{ShmHandler, ShmState},
-    }, desktop::space::SpaceElement,
+    },
 };
 
 impl CompositorHandler for SmallCage {
