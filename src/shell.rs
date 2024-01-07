@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    cell::{RefCell, RefMut},
+    time::Duration,
+};
 
 use smithay::{
     backend::renderer::{
@@ -11,13 +14,17 @@ use smithay::{
     output::Output,
     reexports::wayland_server::protocol::wl_surface,
     render_elements,
-    utils::{IsAlive, Logical, Physical, Point, Rectangle, Scale, Size},
+    utils::{user_data::UserDataMap, IsAlive, Logical, Physical, Point, Rectangle, Scale, Size},
     wayland::{
         compositor::{with_states, SurfaceData},
         seat::WaylandFocus,
         shell::xdg::{SurfaceCachedState, ToplevelSurface},
     },
 };
+
+pub struct WindowState {
+    pub is_ssd: bool,
+}
 
 #[derive(Debug, Clone)]
 pub struct WindowElement {
@@ -108,6 +115,24 @@ impl WindowElement {
         with_states(self.toplevel().wl_surface(), |states| {
             states.cached_state.pending::<SurfaceCachedState>().min_size
         })
+    }
+
+    pub fn user_data(&self) -> &UserDataMap {
+        self.window.user_data()
+    }
+}
+
+impl WindowElement {
+    pub fn decoration_state(&self) -> RefMut<'_, WindowState> {
+        self.user_data()
+            .insert_if_missing(|| RefCell::new(WindowState { is_ssd: false }));
+        self.user_data()
+            .get::<RefCell<WindowState>>()
+            .unwrap()
+            .borrow_mut()
+    }
+    pub fn set_ssd(&self, ssd: bool) {
+        self.decoration_state().is_ssd = ssd
     }
 }
 

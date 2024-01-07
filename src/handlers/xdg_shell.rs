@@ -2,14 +2,14 @@ use smithay::{
     delegate_xdg_shell,
     desktop::{space::SpaceElement, PopupKind},
     reexports::{
-        wayland_protocols::xdg::shell::server::xdg_toplevel,
+        wayland_protocols::xdg::{decoration as xdg_decoration, shell::server::xdg_toplevel},
         wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
     },
     utils::{Logical, Point, Rectangle, Serial, Size},
     wayland::{
         compositor::with_states,
         shell::xdg::{
-            PopupSurface, PositionerState, SurfaceCachedState, ToplevelSurface,
+            Configure, PopupSurface, PositionerState, SurfaceCachedState, ToplevelSurface,
             XdgPopupSurfaceData, XdgShellHandler, XdgShellState, XdgToplevelSurfaceData,
         },
     },
@@ -74,6 +74,27 @@ impl XdgShellHandler for SmallCage {
         _token: u32,
     ) {
         // TODO
+    }
+
+    fn ack_configure(&mut self, surface: WlSurface, configure: Configure) {
+        let Configure::Toplevel(configure) = configure else {
+            return;
+        };
+        use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
+
+        let Some(window) = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == &surface)
+        else {
+            return;
+        };
+        let is_ssd = configure
+            .state
+            .decoration_mode
+            .map(|mode| mode == Mode::ServerSide)
+            .unwrap_or(false);
+        window.set_ssd(is_ssd);
     }
 }
 
