@@ -129,7 +129,7 @@ impl SmallCage {
                 window.remap_element(&mut self.space);
             }
             window.toplevel().send_configure();
-        } else if isconfigured && !window.is_init {
+        } else if isconfigured && !window.is_init() {
             if window.is_fixed_window() {
                 self.map_untitled_element(surface);
             } else {
@@ -206,7 +206,7 @@ impl SmallCage {
             (screen_size.w - max_size.w) / 2,
             (screen_size.h - max_size.h) / 2,
         );
-        window.is_init = true;
+        window.set_inited();
         self.space.map_element(window, (x, y), true);
         Some(())
     }

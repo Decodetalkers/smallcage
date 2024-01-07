@@ -22,7 +22,7 @@ use smithay::{
 #[derive(Debug, Clone)]
 pub struct WindowElement {
     window: Window,
-    pub is_init: bool,
+    is_init: bool,
     is_fixed_window: bool,
     output_size: Size<i32, Logical>,
     element_size: Size<i32, Logical>,
@@ -42,6 +42,10 @@ impl WindowElement {
             return;
         };
         space.map_element(self.clone(), position, true);
+    }
+
+    pub fn is_init(&self) -> bool {
+        self.is_init
     }
 
     pub fn set_inited(&mut self) {
