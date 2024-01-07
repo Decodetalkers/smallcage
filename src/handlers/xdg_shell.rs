@@ -129,10 +129,14 @@ impl SmallCage {
                 window.remap_element(&mut self.space);
             }
             window.toplevel().send_configure();
-        } else if isconfigured && !window.is_fixed_window() {
-            self.resize_element_commit(surface);
-            self.active_untiled_elements();
+        } else if isconfigured && !window.is_init {
+            if window.is_fixed_window() {
+                self.map_untitled_element(surface);
+            } else {
+                self.resize_element_commit(surface);
+            }
         }
+        self.active_untiled_elements();
 
         Some(())
     }
@@ -153,13 +157,6 @@ impl SmallCage {
     }
 
     fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)?;
-        if window.is_init {
-            return None;
-        }
         match self.current_active_window_rectangle(surface) {
             Some(rec) => self.map_with_split(surface, rec),
             None => self.map_one_element(surface),
@@ -196,6 +193,24 @@ impl SmallCage {
 //
 // TODO: I need a new element to mark if it is just init
 impl SmallCage {
+    fn map_untitled_element(&mut self, surface: &WlSurface) -> Option<()> {
+        let mut window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
+        let current_screen = self.current_screen_rectangle()?;
+        let max_size = window.max_size();
+        let screen_size = current_screen.size;
+        let (x, y) = (
+            (screen_size.w - max_size.w) / 2,
+            (screen_size.h - max_size.h) / 2,
+        );
+        window.is_init = true;
+        self.space.map_element(window, (x, y), true);
+        Some(())
+    }
+
     fn map_one_element(&mut self, surface: &WlSurface) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let loc = current_screen.loc;
