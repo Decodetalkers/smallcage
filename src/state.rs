@@ -2,11 +2,15 @@ use std::{ffi::OsString, sync::Arc};
 
 use smithay::{
     delegate_input_method_manager, delegate_text_input_manager, delegate_virtual_keyboard_manager,
-    delegate_xdg_activation,
+    delegate_xdg_activation, delegate_xdg_decoration,
     desktop::{space::SpaceElement, PopupKind, PopupManager, Space, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
         calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
+        wayland_protocols::xdg::decoration::{
+            self as xdg_decoration,
+            zv1::server::zxdg_toplevel_decoration_v1::Mode as DecorationMode,
+        },
         wayland_protocols::xdg::shell::server::xdg_toplevel,
         wayland_server::{
             backend::{ClientData, ClientId, DisconnectReason},
@@ -16,11 +20,14 @@ use smithay::{
     },
     utils::{Logical, Physical, Point, Rectangle, Size},
     wayland::{
-        compositor::{CompositorClientState, CompositorState},
+        compositor::{with_states, CompositorClientState, CompositorState},
         input_method::{InputMethodHandler, InputMethodManagerState, PopupSurface},
         output::OutputManagerState,
         selection::data_device::DataDeviceState,
-        shell::xdg::XdgShellState,
+        shell::xdg::{
+            decoration::{XdgDecorationHandler, XdgDecorationState},
+            ToplevelSurface, XdgShellState, XdgToplevelSurfaceData,
+        },
         shm::ShmState,
         socket::ListeningSocketSource,
         text_input::TextInputManagerState,
@@ -57,6 +64,7 @@ pub struct SmallCage {
     pub seat_state: SeatState<SmallCage>,
     pub data_device_state: DataDeviceState,
     pub xdg_activation_state: XdgActivationState,
+    pub xdg_decoration_state: XdgDecorationState,
 
     pub seat: Seat<Self>,
     pub pointer: PointerHandle<Self>,
@@ -78,6 +86,7 @@ impl SmallCage {
         let data_device_state = DataDeviceState::new::<Self>(&dh);
 
         let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
+        let xdg_decoration_state = XdgDecorationState::new::<Self>(&dh);
 
         TextInputManagerState::new::<Self>(&dh);
         InputMethodManagerState::new::<Self, _>(&dh, |_| true);
@@ -124,6 +133,7 @@ impl SmallCage {
             seat_state,
             data_device_state,
             xdg_activation_state,
+            xdg_decoration_state,
 
             seat,
             pointer,
@@ -270,6 +280,57 @@ impl ClientData for ClientState {
 
 delegate_text_input_manager!(SmallCage);
 delegate_virtual_keyboard_manager!(SmallCage);
+delegate_xdg_decoration!(SmallCage);
+impl XdgDecorationHandler for SmallCage {
+    fn new_decoration(&mut self, toplevel: ToplevelSurface) {
+        use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
+        // Set the default to client side
+        toplevel.with_pending_state(|state| {
+            state.decoration_mode = Some(Mode::ClientSide);
+        });
+    }
+    fn request_mode(&mut self, toplevel: ToplevelSurface, mode: DecorationMode) {
+        use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
+
+        toplevel.with_pending_state(|state| {
+            state.decoration_mode = Some(match mode {
+                DecorationMode::ServerSide => Mode::ServerSide,
+                _ => Mode::ClientSide,
+            });
+        });
+
+        let initial_configure_sent = with_states(toplevel.wl_surface(), |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .initial_configure_sent
+        });
+        if initial_configure_sent {
+            toplevel.send_pending_configure();
+        }
+    }
+    fn unset_mode(&mut self, toplevel: ToplevelSurface) {
+        use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
+        toplevel.with_pending_state(|state| {
+            state.decoration_mode = Some(Mode::ClientSide);
+        });
+        let initial_configure_sent = with_states(toplevel.wl_surface(), |states| {
+            states
+                .data_map
+                .get::<XdgToplevelSurfaceData>()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .initial_configure_sent
+        });
+        if initial_configure_sent {
+            toplevel.send_pending_configure();
+        }
+    }
+}
 
 impl InputMethodHandler for SmallCage {
     fn new_popup(&mut self, surface: PopupSurface) {
