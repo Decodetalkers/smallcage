@@ -104,11 +104,10 @@ delegate_xdg_shell!(SmallCage);
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
     pub fn handle_xdg_commit(&mut self, surface: &WlSurface) -> Option<()> {
-        let mut window = self
+        let window = self
             .space
             .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)
-            .cloned()?;
+            .find(|w| w.toplevel().wl_surface() == surface)?;
 
         let initial_configure_sent = with_states(surface, |states| {
             states
@@ -141,13 +140,11 @@ impl SmallCage {
 
         if window.has_pedding_size() {
             window.set_pedding_size(None);
-            window.remap_element(&mut self.space);
         }
 
         if !initial_configure_sent {
             if is_fixed_size {
                 window.set_is_fixed_window();
-                window.remap_element(&mut self.space);
             }
             window.toplevel().send_configure();
         } else if isconfigured && !window.is_init() {
@@ -292,14 +289,12 @@ impl SmallCage {
         fin_window.set_origin_pos(point);
         self.space.map_element(fin_window, point, false);
 
-        let mut window_pre = windowpre.clone();
-        window_pre.toplevel().with_pending_state(|state| {
+        windowpre.toplevel().with_pending_state(|state| {
             state.size = Some(size);
         });
-        window_pre.toplevel().send_configure();
-        window_pre.set_output_size(current_screen.size);
-        window_pre.set_element_size(size);
-        window_pre.remap_element(&mut self.space);
+        windowpre.toplevel().send_configure();
+        windowpre.set_output_size(current_screen.size);
+        windowpre.set_element_size(size);
 
         Some(())
     }

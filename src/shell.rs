@@ -1,5 +1,5 @@
 use std::{
-    cell::{RefCell, RefMut},
+    cell::{Ref, RefCell, RefMut},
     time::Duration,
 };
 
@@ -22,19 +22,21 @@ use smithay::{
     },
 };
 
+#[derive(Debug, Default)]
 pub struct WindowState {
     pub is_ssd: bool,
+    pub is_fixed_window: bool,
+    pub output_size: Size<i32, Logical>,
+    pub element_size: Size<i32, Logical>,
+    pub origin_pos: Point<i32, Logical>,
+    pub pedding_size: Option<Size<i32, Logical>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct WindowElement {
     window: Window,
     is_init: bool,
-    is_fixed_window: bool,
-    output_size: Size<i32, Logical>,
-    element_size: Size<i32, Logical>,
-    origin_pos: Point<i32, Logical>,
-    pedding_size: Option<Size<i32, Logical>>,
+
 }
 
 impl PartialEq for WindowElement {
@@ -59,50 +61,6 @@ impl WindowElement {
         self.is_init = true;
     }
 
-    pub fn is_fixed_window(&self) -> bool {
-        self.is_fixed_window
-    }
-
-    pub fn set_is_fixed_window(&mut self) {
-        self.is_fixed_window = true;
-    }
-
-    pub fn output_size(&self) -> Size<i32, Logical> {
-        self.output_size
-    }
-
-    pub fn element_size(&self) -> Size<i32, Logical> {
-        self.element_size
-    }
-
-    pub fn origin_pos(&self) -> Point<i32, Logical> {
-        self.origin_pos
-    }
-
-    pub fn set_output_size(&mut self, size: Size<i32, Logical>) {
-        self.output_size = size;
-    }
-
-    pub fn set_element_size(&mut self, size: Size<i32, Logical>) {
-        self.element_size = size;
-    }
-
-    pub fn has_pedding_size(&self) -> bool {
-        self.pedding_size.is_some()
-    }
-
-    pub fn set_pedding_size(&mut self, pedding_size: Option<Size<i32, Logical>>) {
-        self.pedding_size = pedding_size;
-    }
-
-    pub fn get_pedding_size(&self) -> Size<i32, Logical> {
-        self.pedding_size.unwrap_or(self.geometry().size)
-    }
-
-    pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
-        self.origin_pos = point
-    }
-
     #[allow(unused)]
     pub fn max_size(&self) -> Size<i32, Logical> {
         with_states(self.toplevel().wl_surface(), |states| {
@@ -123,16 +81,71 @@ impl WindowElement {
 }
 
 impl WindowElement {
-    pub fn decoration_state(&self) -> RefMut<'_, WindowState> {
+    #[allow(unused)]
+    pub fn decoration_state(&self) -> Ref<'_, WindowState> {
         self.user_data()
-            .insert_if_missing(|| RefCell::new(WindowState { is_ssd: false }));
+            .insert_if_missing(|| RefCell::new(WindowState::default()));
+        self.user_data()
+            .get::<RefCell<WindowState>>()
+            .unwrap()
+            .borrow()
+    }
+
+    fn decoration_state_mut(&self) -> RefMut<'_, WindowState> {
+        self.user_data()
+            .insert_if_missing(|| RefCell::new(WindowState::default()));
         self.user_data()
             .get::<RefCell<WindowState>>()
             .unwrap()
             .borrow_mut()
     }
+
     pub fn set_ssd(&self, ssd: bool) {
-        self.decoration_state().is_ssd = ssd
+        self.decoration_state_mut().is_ssd = ssd
+    }
+
+    pub fn is_fixed_window(&self) -> bool {
+        self.decoration_state().is_fixed_window
+    }
+
+    pub fn set_is_fixed_window(&self) {
+        self.decoration_state_mut().is_fixed_window = true;
+    }
+
+    pub fn output_size(&self) -> Size<i32, Logical> {
+        self.decoration_state().output_size
+    }
+
+    pub fn element_size(&self) -> Size<i32, Logical> {
+        self.decoration_state().element_size
+    }
+
+    pub fn origin_pos(&self) -> Point<i32, Logical> {
+        self.decoration_state().origin_pos
+    }
+
+    pub fn set_output_size(&self, size: Size<i32, Logical>) {
+        self.decoration_state_mut().output_size = size;
+    }
+
+    pub fn set_element_size(&self, size: Size<i32, Logical>) {
+        self.decoration_state_mut().element_size = size;
+    }
+
+    pub fn has_pedding_size(&self) -> bool {
+        self.decoration_state_mut().pedding_size.is_some()
+    }
+
+    pub fn set_pedding_size(&self, pedding_size: Option<Size<i32, Logical>>) {
+        self.decoration_state_mut().pedding_size = pedding_size;
+    }
+
+    pub fn get_pedding_size(&self) -> Size<i32, Logical> {
+        self.decoration_state().pedding_size.unwrap_or(self.geometry().size)
+    }
+
+    pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
+        self.decoration_state_mut().origin_pos = point
     }
 }
 
@@ -141,11 +154,6 @@ impl WindowElement {
         WindowElement {
             window: Window::new(surface),
             is_init: false,
-            is_fixed_window: false,
-            output_size: Default::default(),
-            element_size: Default::default(),
-            origin_pos: Default::default(),
-            pedding_size: Default::default(),
         }
     }
 
