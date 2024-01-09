@@ -231,9 +231,9 @@ fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Optio
     } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_T {
         Some(KeyAction::ToggleTint)
     } else if modifiers.logo && keysym == xkb::KEY_v {
-        Some(KeyAction::ChangeSplitSate(SplitState::V))
+        Some(KeyAction::ChangeSplitSate(SplitState::VSplit))
     } else if modifiers.logo && keysym == xkb::KEY_b {
-        Some(KeyAction::ChangeSplitSate(SplitState::H))
+        Some(KeyAction::ChangeSplitSate(SplitState::HSplit))
     } else {
         None
     }

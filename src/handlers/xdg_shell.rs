@@ -259,12 +259,12 @@ impl SmallCage {
         let (w, h) = rec.size.into();
 
         let (point, size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
-            SplitState::H => {
+            SplitState::HSplit => {
                 let width = w / 2;
                 let height = h;
                 ((x + width, y).into(), (width, height).into())
             }
-            SplitState::V => {
+            SplitState::VSplit => {
                 let width = w;
                 let height = h / 2;
                 ((x, y + height).into(), (width, height).into())

@@ -42,8 +42,8 @@ use crate::CalloopData;
 #[derive(Debug, Default, Clone, Copy)]
 pub enum SplitState {
     #[default]
-    H,
-    V,
+    HSplit,
+    VSplit,
 }
 
 pub struct SmallCage {
