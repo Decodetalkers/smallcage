@@ -4,7 +4,7 @@ use smithay::{
     backend::{
         renderer::{
             damage::OutputDamageTracker, element::surface::WaylandSurfaceRenderElement,
-            gles::GlesRenderer,
+            gles::GlesRenderer, ImportEgl,
         },
         winit::{self, WinitEvent},
     },
@@ -23,7 +23,7 @@ pub fn init_winit(
 
     let display_handle = &data.display_handle;
 
-    let (mut backend, winit) = winit::init()?;
+    let (mut backend, winit) = winit::init::<GlesRenderer>()?;
 
     let mode = Mode {
         size: backend.window_size(),
@@ -47,6 +47,10 @@ pub fn init_winit(
         Some((0, 0).into()),
     );
     output.set_preferred(mode);
+
+    if backend.renderer().bind_wl_display(display_handle).is_ok() {
+        tracing::info!("EGL hardware-acceleration enabled");
+    };
 
     state.space.map_output(&output, (0, 0));
 

@@ -10,10 +10,12 @@ tracing = "0.1.40"
 profiling = "1.0.13"
 
 [dependencies.smithay]
-git =  "https://github.com/Smithay/smithay"
+git = "https://github.com/Smithay/smithay"
 default-features = false
 features = [
-    "backend_winit",
-    "wayland_frontend",
-    "desktop",
+	"backend_winit",
+	"wayland_frontend",
+	"desktop",
+	"use_system_lib",
+	"backend_egl",
 ]
