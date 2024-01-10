@@ -3,6 +3,7 @@ mod ssd;
 mod xdg_shell;
 
 use crate::SmallCage;
+pub use ssd::{HeaderBar, HEADER_BAR_HEIGHT};
 
 //
 // Wl Seat

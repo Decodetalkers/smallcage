@@ -22,6 +22,8 @@ use smithay::{
     },
 };
 
+use crate::handlers::{HeaderBar, HEADER_BAR_HEIGHT};
+
 #[derive(Debug, Default)]
 pub struct WindowState {
     pub is_ssd: bool,
@@ -30,6 +32,7 @@ pub struct WindowState {
     pub element_size: Size<i32, Logical>,
     pub origin_pos: Point<i32, Logical>,
     pub pedding_size: Option<Size<i32, Logical>>,
+    pub header_bar: HeaderBar,
 }
 
 #[derive(Debug, Clone)]
@@ -257,20 +260,50 @@ impl<R: Renderer> std::fmt::Debug for WindowRenderElement<R> {
 
 impl<R> AsRenderElements<R> for WindowElement
 where
-    R: Renderer + ImportAll,
+    R: Renderer + ImportAll + ImportMem,
     <R as Renderer>::TextureId: 'static,
 {
-    type RenderElement = WaylandSurfaceRenderElement<R>;
+    type RenderElement = WindowRenderElement<R>;
 
     #[profiling::function]
-    fn render_elements<C: From<WaylandSurfaceRenderElement<R>>>(
+    fn render_elements<C: From<Self::RenderElement>>(
         &self,
         renderer: &mut R,
-        location: Point<i32, Physical>,
+        mut location: Point<i32, Physical>,
         scale: Scale<f64>,
         alpha: f32,
     ) -> Vec<C> {
-        self.window
-            .render_elements(renderer, location, scale, alpha)
+        let window_bbox = self.window.bbox();
+        if !self.window_state().is_ssd || window_bbox.is_empty() {
+            return self
+                .window
+                .render_elements(renderer, location, scale, alpha)
+                .into_iter()
+                .map(C::from)
+                .collect();
+        }
+        let window_geo = self.window.geometry();
+        let mut state = self.window_state_mut();
+        let width = window_geo.size.w;
+        state.header_bar.redraw(width as u32);
+        let mut vec = AsRenderElements::<R>::render_elements::<WindowRenderElement<R>>(
+            &state.header_bar,
+            renderer,
+            location,
+            scale,
+            alpha,
+        );
+
+        location.y += (scale.y * HEADER_BAR_HEIGHT as f64) as i32;
+
+        let window_elements = AsRenderElements::<R>::render_elements::<WindowRenderElement<R>>(
+            &self.window,
+            renderer,
+            location,
+            scale,
+            alpha,
+        );
+        vec.extend(window_elements);
+        vec.into_iter().map(C::from).collect()
     }
 }
