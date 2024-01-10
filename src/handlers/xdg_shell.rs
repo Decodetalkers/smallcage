@@ -159,7 +159,7 @@ impl SmallCage {
         Some(())
     }
 
-    fn raise_untiled_elements(&mut self) {
+    pub fn raise_untiled_elements(&mut self) {
         let mut elements: Vec<WindowElement> = self
             .space
             .elements()
@@ -367,7 +367,6 @@ impl SmallCage {
                     state.size = Some(newsize);
                 });
                 element.toplevel().send_configure();
-                element.remap_element(&mut self.space);
             }
             return;
         }
@@ -388,6 +387,7 @@ impl SmallCage {
                 element.toplevel().send_configure();
                 self.space.map_element(element.clone(), (o_x, y), true);
             }
+            self.raise_untiled_elements();
             return;
         }
         if let Some(mut elements) = self.find_left_element((x, y), (rb_x, rb_y)) {
@@ -405,7 +405,6 @@ impl SmallCage {
                     state.size = Some(newsize);
                 });
                 element.toplevel().send_configure();
-                element.remap_element(&mut self.space);
             }
             return;
         }
@@ -427,6 +426,7 @@ impl SmallCage {
                 element.toplevel().send_configure();
                 self.space.map_element(element.clone(), (x, o_y), true);
             }
+            self.raise_untiled_elements();
         }
     }
 }

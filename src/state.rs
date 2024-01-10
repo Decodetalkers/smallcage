@@ -216,6 +216,7 @@ impl SmallCage {
                 .current_state()
                 .states
                 .contains(xdg_toplevel::State::Fullscreen)
+                || winit.is_fixed_window()
             {
                 self.full_screen_commit(winit.toplevel().wl_surface());
                 continue;

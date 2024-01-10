@@ -10,7 +10,7 @@ use smithay::{
         },
         ImportAll, ImportMem, Renderer,
     },
-    desktop::{space::SpaceElement, Space, Window, WindowSurfaceType},
+    desktop::{space::SpaceElement, Window, WindowSurfaceType},
     input::{keyboard::KeyboardTarget, pointer::PointerTarget},
     output::Output,
     reexports::wayland_server::protocol::wl_surface,
@@ -52,13 +52,6 @@ impl PartialEq for WindowElement {
 }
 
 impl WindowElement {
-    pub fn remap_element(&self, space: &mut Space<Self>) {
-        let Some(position) = space.element_location(self) else {
-            return;
-        };
-        space.map_element(self.clone(), position, true);
-    }
-
     pub fn is_init(&self) -> bool {
         self.is_init
     }
