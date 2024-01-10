@@ -1,4 +1,5 @@
 mod compositor;
+mod ssd;
 mod xdg_shell;
 
 use crate::SmallCage;
@@ -12,8 +13,11 @@ use smithay::reexports::wayland_server::{protocol::wl_surface::WlSurface, Resour
 use smithay::wayland::selection::data_device::{
     set_data_device_focus, ClientDndGrabHandler, DataDeviceHandler, ServerDndGrabHandler,
 };
+use smithay::wayland::selection::primary_selection::{
+    PrimarySelectionHandler, PrimarySelectionState,
+};
 use smithay::wayland::selection::SelectionHandler;
-use smithay::{delegate_data_device, delegate_output, delegate_seat};
+use smithay::{delegate_data_device, delegate_output, delegate_primary_selection, delegate_seat};
 
 impl SeatHandler for SmallCage {
     type KeyboardFocus = WlSurface;
@@ -37,7 +41,14 @@ impl SeatHandler for SmallCage {
     }
 }
 
+impl PrimarySelectionHandler for SmallCage {
+    fn primary_selection_state(&self) -> &PrimarySelectionState {
+        &self.primary_selection_state
+    }
+}
+
 delegate_seat!(SmallCage);
+delegate_primary_selection!(SmallCage);
 
 //
 // Wl Data Device

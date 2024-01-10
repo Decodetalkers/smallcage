@@ -2,10 +2,9 @@ use crate::{state::ClientState, SmallCage};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
-    desktop::space::SpaceElement,
     reexports::wayland_server::{
         protocol::{wl_buffer, wl_surface::WlSurface},
-        Client,
+        Client, Resource,
     },
     utils::{Logical, Point},
     wayland::{
@@ -14,6 +13,8 @@ use smithay::{
             get_parent, is_sync_subsurface, CompositorClientState, CompositorHandler,
             CompositorState,
         },
+        selection::data_device::set_data_device_focus,
+        selection::primary_selection::set_primary_focus,
         shm::{ShmHandler, ShmState},
     },
 };
@@ -69,13 +70,10 @@ impl SmallCage {
     }
     pub fn handle_focus_change(&mut self) -> Option<()> {
         let (surface, _) = self.find_current_select_surface()?;
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == &surface)
-            .cloned()?;
-        window.set_activate(true);
-        window.remap_element(&mut self.space);
+        let dh = &self.display_handle;
+        let client = dh.get_client(surface.id()).ok();
+        set_data_device_focus(dh, &self.seat, client.clone());
+        set_primary_focus(dh, &self.seat, client);
         Some(())
     }
 }

@@ -23,7 +23,7 @@ use smithay::{
         compositor::{with_states, CompositorClientState, CompositorState},
         input_method::{InputMethodHandler, InputMethodManagerState, PopupSurface},
         output::OutputManagerState,
-        selection::data_device::DataDeviceState,
+        selection::{data_device::DataDeviceState, primary_selection::PrimarySelectionState},
         shell::xdg::{
             decoration::{XdgDecorationHandler, XdgDecorationState},
             ToplevelSurface, XdgShellState, XdgToplevelSurfaceData,
@@ -62,6 +62,7 @@ pub struct SmallCage {
     pub shm_state: ShmState,
     pub output_manager_state: OutputManagerState,
     pub seat_state: SeatState<SmallCage>,
+    pub primary_selection_state: PrimarySelectionState,
     pub data_device_state: DataDeviceState,
     pub xdg_activation_state: XdgActivationState,
     pub xdg_decoration_state: XdgDecorationState,
@@ -83,6 +84,7 @@ impl SmallCage {
         let shm_state = ShmState::new::<Self>(&dh, vec![]);
         let output_manager_state = OutputManagerState::new_with_xdg_output::<Self>(&dh);
         let mut seat_state = SeatState::new();
+        let primary_selection_state = PrimarySelectionState::new::<Self>(&dh);
         let data_device_state = DataDeviceState::new::<Self>(&dh);
 
         let xdg_activation_state = XdgActivationState::new::<Self>(&dh);
@@ -131,6 +133,7 @@ impl SmallCage {
             shm_state,
             output_manager_state,
             seat_state,
+            primary_selection_state,
             data_device_state,
             xdg_activation_state,
             xdg_decoration_state,
