@@ -154,12 +154,12 @@ impl SmallCage {
                 self.resize_element_commit(surface);
             }
         }
-        self.active_untiled_elements();
+        self.raise_untiled_elements();
 
         Some(())
     }
 
-    fn active_untiled_elements(&mut self) {
+    fn raise_untiled_elements(&mut self) {
         let mut elements: Vec<WindowElement> = self
             .space
             .elements()
@@ -168,9 +168,7 @@ impl SmallCage {
             .collect();
         elements.sort_by(|a, b| a.z_index().partial_cmp(&b.z_index()).unwrap());
         for el in elements {
-            el.set_activated(true);
-            el.toplevel().send_configure();
-            el.remap_element(&mut self.space);
+            self.space.raise_element(&el, true);
         }
     }
 

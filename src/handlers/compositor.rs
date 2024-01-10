@@ -6,7 +6,7 @@ use smithay::{
         protocol::{wl_buffer, wl_surface::WlSurface},
         Client, Resource,
     },
-    utils::{Logical, Point},
+    utils::{Logical, Point, SERIAL_COUNTER},
     wayland::{
         buffer::BufferHandler,
         compositor::{
@@ -74,6 +74,9 @@ impl SmallCage {
         let client = dh.get_client(surface.id()).ok();
         set_data_device_focus(dh, &self.seat, client.clone());
         set_primary_focus(dh, &self.seat, client);
+        let keyboard = self.seat.get_keyboard().unwrap();
+        let serial = SERIAL_COUNTER.next_serial();
+        keyboard.set_focus(self, Some(surface), serial);
         Some(())
     }
 }

@@ -51,11 +51,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     event_loop.run(
-        None,
-        //Some(std::time::Duration::from_secs(1)),
+        Some(std::time::Duration::from_secs(1)),
         &mut data,
-        move |_| {
-            //w.state.handle_focus_change();
+        move |w| {
+            w.state.handle_focus_change();
         },
     )?;
 
