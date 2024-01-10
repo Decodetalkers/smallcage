@@ -77,6 +77,7 @@ impl SmallCage {
         let keyboard = self.seat.get_keyboard().unwrap();
         let serial = SERIAL_COUNTER.next_serial();
         keyboard.set_focus(self, Some(surface), serial);
+        self.raise_untiled_elements();
         Some(())
     }
 }
