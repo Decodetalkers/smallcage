@@ -24,7 +24,7 @@ impl XdgShellHandler for SmallCage {
 
     fn new_toplevel(&mut self, surface: ToplevelSurface) {
         let window = WindowElement::new(surface);
-        self.space.map_element(window, (30, 30), true);
+        self.space.map_element(window, (0, 0), false);
     }
 
     fn toplevel_destroyed(&mut self, surface: ToplevelSurface) {
