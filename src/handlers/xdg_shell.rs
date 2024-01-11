@@ -17,6 +17,8 @@ use smithay::{
 
 use crate::{shell::WindowElement, state::SplitState, SmallCage};
 
+use super::HEADER_BAR_HEIGHT;
+
 impl XdgShellHandler for SmallCage {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
@@ -217,7 +219,10 @@ impl SmallCage {
             .cloned()?;
         let current_screen = self.current_screen_rectangle()?;
         let max_size = window.max_size();
-        let screen_size = current_screen.size;
+        let mut screen_size = current_screen.size;
+        if window.window_state().is_ssd {
+            screen_size.h += HEADER_BAR_HEIGHT;
+        }
         let (x, y) = (
             (screen_size.w - max_size.w) / 2,
             (screen_size.h - max_size.h) / 2,
@@ -239,11 +244,15 @@ impl SmallCage {
         window.toplevel().with_pending_state(|state| {
             state.size = Some((w, h).into());
         });
+        let mut current_screen_size = current_screen.size;
+        if window.window_state().is_ssd {
+            current_screen_size.h -= HEADER_BAR_HEIGHT;
+        }
         let mut fin_window = window.clone();
         fin_window.set_inited();
         fin_window.toplevel().send_configure();
-        fin_window.set_output_size(current_screen.size);
-        fin_window.set_element_size(current_screen.size);
+        fin_window.set_output_size(current_screen_size);
+        fin_window.set_element_size(current_screen_size);
         fin_window.set_origin_pos(loc);
         self.space.map_element(fin_window, loc, true);
 
@@ -252,11 +261,10 @@ impl SmallCage {
 
     fn map_with_split(&mut self, surface: &WlSurface, windowpre: WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
-        let rec = windowpre.geometry();
         let (x, y) = self.space.element_location(&windowpre)?.into();
-        let (w, h) = rec.size.into();
+        let (w, h) = windowpre.window_size().into();
 
-        let (point, size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
+        let (point, mut size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
             SplitState::HSplit => {
                 let width = w / 2;
                 let height = h;
@@ -269,23 +277,32 @@ impl SmallCage {
             }
         };
 
+        let mut afterwindowsize = size.clone();
+
         let window = self
             .space
             .elements()
             .find(|w| w.toplevel().wl_surface() == surface)
             .cloned()?;
+        if window.window_state().is_ssd {
+            afterwindowsize.h -= HEADER_BAR_HEIGHT;
+        }
 
         window.toplevel().with_pending_state(|state| {
-            state.size = Some(size);
+            state.size = Some(afterwindowsize);
         });
         window.toplevel().send_configure();
 
         let mut fin_window = window.clone();
         fin_window.set_inited();
-        fin_window.set_element_size(size);
+        fin_window.set_element_size(afterwindowsize);
         fin_window.set_output_size(current_screen.size);
         fin_window.set_origin_pos(point);
         self.space.map_element(fin_window, point, false);
+
+        if windowpre.window_state().is_ssd {
+            size.h -= HEADER_BAR_HEIGHT;
+        }
 
         windowpre.toplevel().with_pending_state(|state| {
             state.size = Some(size);
@@ -358,10 +375,14 @@ impl SmallCage {
                     continue;
                 };
                 let (ow, oh) = element.get_pedding_size().into();
-                let newsize: Size<i32, Logical> = (ow, oh + h).into();
+                let size: Size<i32, Logical> = (ow, oh + h).into();
+                let mut newsize = size.clone();
+                if element.window_state().is_ssd {
+                    newsize.h -= HEADER_BAR_HEIGHT;
+                }
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
-                element.set_pedding_size(Some(newsize));
+                element.set_pedding_size(Some(size));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
@@ -377,10 +398,14 @@ impl SmallCage {
                 };
                 let (o_x, _) = ori_pos.into();
                 let (ow, oh) = element.get_pedding_size().into();
-                let newsize: Size<i32, Logical> = (ow, oh + h).into();
+                let size: Size<i32, Logical> = (ow, oh + h).into();
+                let mut newsize = size.clone();
+                if element.window_state().is_ssd {
+                    newsize.h -= HEADER_BAR_HEIGHT;
+                }
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
-                element.set_pedding_size(Some(newsize));
+                element.set_pedding_size(Some(size));
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
                 });
@@ -396,10 +421,14 @@ impl SmallCage {
                     continue;
                 };
                 let (ow, oh) = element.get_pedding_size().into();
-                let newsize: Size<i32, Logical> = (ow + w, oh).into();
+                let size: Size<i32, Logical> = (ow + w, oh).into();
+                let mut newsize = size.clone();
+                if element.window_state().is_ssd {
+                    newsize.h -= HEADER_BAR_HEIGHT;
+                }
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
-                element.set_pedding_size(Some(newsize));
+                element.set_pedding_size(Some(size));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
@@ -415,10 +444,14 @@ impl SmallCage {
                 };
                 let (_, o_y) = ori_pos.into();
                 let (ow, oh) = element.get_pedding_size().into();
-                let newsize: Size<i32, Logical> = (ow + w, oh).into();
+                let size: Size<i32, Logical> = (ow + w, oh).into();
+                let mut newsize = size.clone();
+                if element.window_state().is_ssd {
+                    newsize.h -= HEADER_BAR_HEIGHT;
+                }
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
-                element.set_pedding_size(Some(newsize));
+                element.set_pedding_size(Some(size));
                 element.set_origin_pos(ori_pos);
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);

@@ -112,6 +112,14 @@ impl WindowElement {
             .borrow_mut()
     }
 
+    pub fn window_size(&self) -> Size<i32, Logical> {
+        let mut size = self.geometry().size;
+        if self.window_state().is_ssd {
+            size.h += HEADER_BAR_HEIGHT
+        }
+        size
+    }
+
     pub fn set_ssd(&self, ssd: bool) {
         self.window_state_mut().is_ssd = ssd
     }
@@ -155,7 +163,7 @@ impl WindowElement {
     pub fn get_pedding_size(&self) -> Size<i32, Logical> {
         self.window_state()
             .pedding_size
-            .unwrap_or(self.geometry().size)
+            .unwrap_or(self.window_size())
     }
 
     pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
