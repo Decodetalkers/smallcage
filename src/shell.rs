@@ -1,3 +1,6 @@
+mod elementkeyboard;
+mod elementpoint;
+
 use std::{
     cell::{Ref, RefCell, RefMut},
     time::Duration,
@@ -11,7 +14,6 @@ use smithay::{
         ImportAll, ImportMem, Renderer,
     },
     desktop::{space::SpaceElement, Window, WindowSurfaceType},
-    input::{keyboard::KeyboardTarget, pointer::PointerTarget},
     output::Output,
     reexports::wayland_server::protocol::wl_surface,
     render_elements,
@@ -23,10 +25,7 @@ use smithay::{
     },
 };
 
-use crate::{
-    handlers::{HeaderBar, HEADER_BAR_HEIGHT},
-    state::SmallCage,
-};
+use crate::handlers::{HeaderBar, HEADER_BAR_HEIGHT};
 
 #[derive(Debug, Default)]
 pub struct WindowState {
@@ -259,167 +258,6 @@ impl SpaceElement for WindowElement {
     fn refresh(&self) {
         SpaceElement::refresh(&self.window)
     }
-}
-
-impl PointerTarget<SmallCage> for WindowElement {
-    fn leave(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        serial: smithay::utils::Serial,
-        time: u32,
-    ) {
-        PointerTarget::leave(&self.window, seat, data, serial, time)
-    }
-    fn gesture_hold_end(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GestureHoldEndEvent,
-    ) {
-        self.window.gesture_hold_end(seat, data, event)
-    }
-    fn gesture_swipe_end(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GestureSwipeEndEvent,
-    ) {
-        self.window.gesture_swipe_end(seat, data, event)
-    }
-    fn gesture_swipe_begin(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GestureSwipeBeginEvent,
-    ) {
-        self.window.gesture_swipe_begin(seat, data, event)
-    }
-    fn gesture_hold_begin(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GestureHoldBeginEvent,
-    ) {
-        self.window.gesture_hold_begin(seat, data, event)
-    }
-    fn gesture_pinch_end(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GesturePinchEndEvent,
-    ) {
-        self.window.gesture_pinch_end(seat, data, event)
-    }
-    fn gesture_swipe_update(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GestureSwipeUpdateEvent,
-    ) {
-        self.window.gesture_swipe_update(seat, data, event)
-    }
-    fn gesture_pinch_update(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GesturePinchUpdateEvent,
-    ) {
-        self.window.gesture_pinch_update(seat, data, event)
-    }
-    fn gesture_pinch_begin(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::GesturePinchBeginEvent,
-    ) {
-        self.window.gesture_pinch_begin(seat, data, event)
-    }
-    fn relative_motion(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::RelativeMotionEvent,
-    ) {
-        self.window.relative_motion(seat, data, event)
-    }
-    fn frame(&self, seat: &smithay::input::Seat<SmallCage>, data: &mut SmallCage) {
-        self.window.frame(seat, data)
-    }
-    fn axis(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        frame: smithay::input::pointer::AxisFrame,
-    ) {
-        self.window.axis(seat, data, frame)
-    }
-    fn button(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::ButtonEvent,
-    ) {
-        tracing::info!("button");
-        self.window.button(seat, data, event)
-    }
-    fn motion(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::MotionEvent,
-    ) {
-        self.window.motion(seat, data, event)
-    }
-    fn enter(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        event: &smithay::input::pointer::MotionEvent,
-    ) {
-        PointerTarget::enter(&self.window, seat, data, event)
-    }
-}
-
-impl KeyboardTarget<SmallCage> for WindowElement {
-    fn enter(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        keys: Vec<smithay::input::keyboard::KeysymHandle<'_>>,
-        serial: smithay::utils::Serial,
-    ) {
-        KeyboardTarget::enter(&self.window, seat, data, keys, serial)
-    }
-    fn modifiers(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        modifiers: smithay::input::keyboard::ModifiersState,
-        serial: smithay::utils::Serial,
-    ) {
-        self.window.modifiers(seat, data, modifiers, serial)
-    }
-    fn leave(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        serial: smithay::utils::Serial,
-    ) {
-        KeyboardTarget::leave(&self.window, seat, data, serial)
-    }
-    fn key(
-        &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
-        key: smithay::input::keyboard::KeysymHandle<'_>,
-        state: smithay::backend::input::KeyState,
-        serial: smithay::utils::Serial,
-        time: u32,
-    ) {
-        self.window.key(seat, data, key, state, serial, time)
-    }
-    // add code here
 }
 
 impl WaylandFocus for WindowElement {
