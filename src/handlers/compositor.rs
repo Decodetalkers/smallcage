@@ -70,6 +70,11 @@ impl SmallCage {
     }
     pub fn handle_focus_change(&mut self) -> Option<()> {
         let (surface, _) = self.find_current_select_surface()?;
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == &surface)
+            .cloned()?;
         let dh = &self.display_handle;
         let client = dh.get_client(surface.id()).ok();
         set_data_device_focus(dh, &self.seat, client.clone());
@@ -77,6 +82,10 @@ impl SmallCage {
         let keyboard = self.seat.get_keyboard().unwrap();
         let serial = SERIAL_COUNTER.next_serial();
         keyboard.set_focus(self, Some(surface), serial);
+        self.space.raise_element(&window, true);
+        self.space.elements().for_each(|window| {
+            window.toplevel().send_pending_configure();
+        });
         self.raise_untiled_elements();
         Some(())
     }
