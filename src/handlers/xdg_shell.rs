@@ -277,7 +277,7 @@ impl SmallCage {
             }
         };
 
-        let mut afterwindowsize = size.clone();
+        let mut afterwindowsize = size;
 
         let window = self
             .space
@@ -376,7 +376,7 @@ impl SmallCage {
                 };
                 let (ow, oh) = element.get_pedding_size().into();
                 let size: Size<i32, Logical> = (ow, oh + h).into();
-                let mut newsize = size.clone();
+                let mut newsize = size;
                 if element.window_state().is_ssd {
                     newsize.h -= HEADER_BAR_HEIGHT;
                 }
@@ -399,7 +399,7 @@ impl SmallCage {
                 let (o_x, _) = ori_pos.into();
                 let (ow, oh) = element.get_pedding_size().into();
                 let size: Size<i32, Logical> = (ow, oh + h).into();
-                let mut newsize = size.clone();
+                let mut newsize = size;
                 if element.window_state().is_ssd {
                     newsize.h -= HEADER_BAR_HEIGHT;
                 }
@@ -422,7 +422,7 @@ impl SmallCage {
                 };
                 let (ow, oh) = element.get_pedding_size().into();
                 let size: Size<i32, Logical> = (ow + w, oh).into();
-                let mut newsize = size.clone();
+                let mut newsize = size;
                 if element.window_state().is_ssd {
                     newsize.h -= HEADER_BAR_HEIGHT;
                 }
@@ -445,7 +445,7 @@ impl SmallCage {
                 let (_, o_y) = ori_pos.into();
                 let (ow, oh) = element.get_pedding_size().into();
                 let size: Size<i32, Logical> = (ow + w, oh).into();
-                let mut newsize = size.clone();
+                let mut newsize = size;
                 if element.window_state().is_ssd {
                     newsize.h -= HEADER_BAR_HEIGHT;
                 }
