@@ -100,7 +100,6 @@ impl PointerTarget<SmallCage> for WindowElement {
         data: &mut SmallCage,
         event: &smithay::input::pointer::ButtonEvent,
     ) {
-        tracing::info!("button");
         self.window.button(seat, data, event)
     }
     fn motion(
