@@ -50,6 +50,11 @@ impl HeaderBar {
         window: &WindowElement,
         serial: Serial,
     ) {
+        if let Some(loc) = self.pointer_loc.as_ref() {
+            if loc.x > (self.width - BUTTON_WIDTH) as f64 {
+                window.toplevel().send_close();
+            }
+        }
     }
 
     pub fn redraw(&mut self, width: u32) {

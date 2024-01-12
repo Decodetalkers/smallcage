@@ -30,6 +30,7 @@ use crate::handlers::{HeaderBar, HEADER_BAR_HEIGHT};
 #[derive(Debug, Default)]
 pub struct WindowState {
     pub is_ssd: bool,
+    pub ptr_entered_window: bool,
     pub is_fixed_window: bool,
     pub output_size: Size<i32, Logical>,
     pub element_size: Size<i32, Logical>,
@@ -120,6 +121,11 @@ impl WindowElement {
             size.h += HEADER_BAR_HEIGHT
         }
         size
+    }
+
+    #[allow(unused)]
+    pub fn is_ssd(&self) -> bool {
+        self.window_state().is_ssd
     }
 
     pub fn set_ssd(&self, ssd: bool) {
