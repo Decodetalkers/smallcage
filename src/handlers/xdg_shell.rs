@@ -362,13 +362,11 @@ impl SmallCage {
         };
         let screen_size = current_screen.size;
         let Some(pos) = self.space.element_location(window) else {
-            self.space.unmap_elem(window);
             return;
         };
         let (x, y) = pos.into();
         let (w, h) = window.get_pedding_size().into();
         let (rb_x, rb_y) = (x + w, y + h);
-        self.space.unmap_elem(window);
         if let Some(mut elements) = self.find_up_element((x, y), (rb_x, rb_y)) {
             for element in elements.iter_mut() {
                 let Some(ori_pos) = self.space.element_location(element) else {
