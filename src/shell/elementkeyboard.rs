@@ -42,4 +42,3 @@ impl KeyboardTarget<SmallCage> for WindowElement {
     }
     // add code here
 }
-

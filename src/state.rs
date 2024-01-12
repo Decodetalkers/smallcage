@@ -194,14 +194,14 @@ impl SmallCage {
     pub fn surface_under_pointer(
         &self,
         pointer: &PointerHandle<Self>,
-    ) -> Option<(WlSurface, Point<i32, Logical>)> {
+    ) -> Option<(WindowElement, Point<i32, Logical>)> {
         let pos = pointer.current_location();
         self.space
             .element_under(pos)
             .and_then(|(window, location)| {
                 window
                     .surface_under(pos - location.to_f64(), WindowSurfaceType::TOPLEVEL)
-                    .map(|(s, p)| (s, p + location))
+                    .map(|(_, p)| (window.clone(), p + location))
             })
     }
 

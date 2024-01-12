@@ -15,7 +15,7 @@ use smithay::{
     },
     desktop::{space::SpaceElement, Window, WindowSurfaceType},
     output::Output,
-    reexports::wayland_server::protocol::wl_surface,
+    reexports::wayland_server::{backend::ObjectId, protocol::wl_surface, Resource},
     render_elements,
     utils::{user_data::UserDataMap, IsAlive, Logical, Physical, Point, Rectangle, Scale, Size},
     wayland::{
@@ -51,6 +51,9 @@ impl PartialEq for WindowElement {
 }
 
 impl WindowElement {
+    pub fn id(&self) -> ObjectId {
+        self.window.toplevel().wl_surface().id()
+    }
     pub fn is_init(&self) -> bool {
         self.is_init
     }

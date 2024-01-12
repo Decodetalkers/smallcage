@@ -1,10 +1,10 @@
-use crate::{state::ClientState, SmallCage};
+use crate::{shell::WindowElement, state::ClientState, SmallCage};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
     reexports::wayland_server::{
         protocol::{wl_buffer, wl_surface::WlSurface},
-        Client, Resource,
+        Client,
     },
     utils::{Logical, Point, SERIAL_COUNTER},
     wayland::{
@@ -63,30 +63,27 @@ impl ShmHandler for SmallCage {
 delegate_compositor!(SmallCage);
 delegate_shm!(SmallCage);
 
-#[allow(unused)]
 impl SmallCage {
-    pub fn find_current_select_surface(&self) -> Option<(WlSurface, Point<i32, Logical>)> {
+    pub fn find_current_select_surface(&self) -> Option<(WindowElement, Point<i32, Logical>)> {
         self.surface_under_pointer(&self.pointer)
     }
+
     pub fn handle_focus_change(&mut self) -> Option<()> {
-        let (surface, _) = self.find_current_select_surface()?;
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == &surface)
-            .cloned()?;
+        let (window, _) = self.find_current_select_surface()?;
         let dh = &self.display_handle;
-        let client = dh.get_client(surface.id()).ok();
+        let client = dh.get_client(window.id()).ok();
         set_data_device_focus(dh, &self.seat, client.clone());
         set_primary_focus(dh, &self.seat, client);
         let keyboard = self.seat.get_keyboard().unwrap();
         let serial = SERIAL_COUNTER.next_serial();
-        keyboard.set_focus(self, Some(surface), serial);
+
         self.space.raise_element(&window, true);
         self.space.elements().for_each(|window| {
             window.toplevel().send_pending_configure();
         });
         self.raise_untiled_elements();
+
+        keyboard.set_focus(self, Some(window), serial);
         Some(())
     }
 }

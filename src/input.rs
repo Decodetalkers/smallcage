@@ -7,11 +7,13 @@ use smithay::{
         keyboard::{keysyms as xkb, FilterResult, Keysym, ModifiersState},
         pointer::{AxisFrame, ButtonEvent, MotionEvent},
     },
-    reexports::wayland_server::protocol::wl_surface::WlSurface,
     utils::SERIAL_COUNTER,
 };
 
-use crate::state::{SmallCage, SplitState};
+use crate::{
+    shell::WindowElement,
+    state::{SmallCage, SplitState},
+};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -98,11 +100,7 @@ impl SmallCage {
                         .map(|(w, l)| (w.clone(), l))
                     {
                         self.space.raise_element(&window, true);
-                        keyboard.set_focus(
-                            self,
-                            Some(window.toplevel().wl_surface().clone()),
-                            serial,
-                        );
+                        keyboard.set_focus(self, Some(window.clone()), serial);
                         self.space.elements().for_each(|window| {
                             window.toplevel().send_pending_configure();
                         });
@@ -114,7 +112,7 @@ impl SmallCage {
                             window.set_activated(false);
                             window.toplevel().send_pending_configure();
                         });
-                        keyboard.set_focus(self, Option::<WlSurface>::None, serial);
+                        keyboard.set_focus(self, Option::<WindowElement>::None, serial);
                     }
                 };
 
