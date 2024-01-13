@@ -31,6 +31,7 @@ use crate::handlers::{HeaderBar, HEADER_BAR_HEIGHT};
 pub struct WindowState {
     pub is_ssd: bool,
     pub ptr_entered_window: bool,
+    pub is_untiled: bool,
     pub is_fixed_window: bool,
     pub output_size: Size<i32, Logical>,
     pub element_size: Size<i32, Logical>,
@@ -132,12 +133,25 @@ impl WindowElement {
         self.window_state_mut().is_ssd = ssd
     }
 
+    #[allow(unused)]
+    pub fn is_untiled(&self) -> bool {
+        self.window_state().is_untiled
+    }
+
+    pub fn set_is_untitled(&self, is_untiled: bool) {
+        if is_untiled && self.is_fixed_window() {
+            return;
+        }
+        self.window_state_mut().is_untiled = is_untiled;
+    }
+
     pub fn is_fixed_window(&self) -> bool {
         self.window_state().is_fixed_window
     }
 
     pub fn set_is_fixed_window(&self) {
         self.window_state_mut().is_fixed_window = true;
+        self.set_is_untitled(true);
     }
 
     pub fn output_size(&self) -> Size<i32, Logical> {
