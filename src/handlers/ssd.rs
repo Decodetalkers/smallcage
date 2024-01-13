@@ -16,24 +16,27 @@ use crate::{shell::WindowElement, state::SmallCage};
 pub struct HeaderBar {
     pub pointer_loc: Option<Point<f64, Logical>>,
     pub width: u32,
+    pub state_button_hover: bool,
     pub close_button_hover: bool,
     pub min_button_hover: bool,
     pub background: SolidColorBuffer,
+    pub state_button: SolidColorBuffer,
     pub close_button: SolidColorBuffer,
     pub min_button: SolidColorBuffer,
 }
 
 const BG_COLOR: [f32; 4] = [0.75f32, 0.9f32, 0.78f32, 1f32];
 const MIN_COLOR: [f32; 4] = [1f32, 0.965f32, 0.71f32, 1f32];
+const STATE_CHANGE_COLOR: [f32; 4] = [1f32, 0.665f32, 0.71f32, 1f32];
 const CLOSE_COLOR: [f32; 4] = [1f32, 0.66f32, 0.612f32, 1f32];
-const MIN_COLOR_HOVER: [f32; 4] = [0.71f32, 0.624f32, 0f32, 1f32];
+const MIN_COLOR_HOVER: [f32; 4] = [0.71f32, 0.424f32, 0f32, 1f32];
+const STATE_CHANGE_COLOR_HOVER: [f32; 4] = [0.71f32, 0.624f32, 0f32, 1f32];
 const CLOSE_COLOR_HOVER: [f32; 4] = [0.75f32, 0.11f32, 0.016f32, 1f32];
 
 pub const HEADER_BAR_HEIGHT: i32 = 25;
 const BUTTON_HEIGHT: u32 = HEADER_BAR_HEIGHT as u32;
 const BUTTON_WIDTH: u32 = 25;
 
-#[allow(unused)]
 impl HeaderBar {
     pub fn pointer_enter(&mut self, loc: Point<f64, Logical>) {
         self.pointer_loc = Some(loc);
@@ -43,6 +46,7 @@ impl HeaderBar {
         self.pointer_loc = None;
     }
 
+    #[allow(unused)]
     pub fn clicked(
         &mut self,
         seat: &Seat<SmallCage>,
@@ -70,6 +74,32 @@ impl HeaderBar {
         if width != self.width {
             needs_redraw_buttons = true;
             self.width = width;
+        }
+
+        if self
+            .pointer_loc
+            .as_ref()
+            .map(|l| l.x <= BUTTON_WIDTH as f64)
+            .unwrap_or(false)
+            && (needs_redraw_buttons || !self.state_button_hover)
+        {
+            self.state_button.update(
+                (BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32),
+                STATE_CHANGE_COLOR_HOVER,
+            );
+            self.state_button_hover = true;
+        } else if !self
+            .pointer_loc
+            .as_ref()
+            .map(|l| l.x <= BUTTON_WIDTH as f64)
+            .unwrap_or(false)
+            && (needs_redraw_buttons || self.state_button_hover)
+        {
+            self.state_button.update(
+                (BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32),
+                STATE_CHANGE_COLOR,
+            );
+            self.state_button_hover = false;
         }
 
         if self
@@ -138,6 +168,14 @@ impl<R: Renderer> AsRenderElements<R> for HeaderBar {
         let button_offset: Point<i32, Logical> = Point::from((BUTTON_WIDTH as i32, 0));
 
         vec![
+            SolidColorRenderElement::from_buffer(
+                &self.state_button,
+                location,
+                scale,
+                alpha,
+                Kind::Unspecified,
+            )
+            .into(),
             SolidColorRenderElement::from_buffer(
                 &self.close_button,
                 location + (header_end_offset - button_offset).to_physical_precise_round(scale),
