@@ -38,7 +38,7 @@ impl XdgShellHandler for SmallCage {
         else {
             return;
         };
-        self.handle_be_untiled_window(&window);
+        self.handle_dead_window(&window);
     }
 
     fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
@@ -151,7 +151,7 @@ impl SmallCage {
             window.toplevel().send_configure();
         } else if isconfigured && !window.is_init() {
             if window.is_fixed_window() {
-                self.map_untitled_element_with_surface(surface);
+                self.map_untitled_element(surface);
             } else {
                 self.resize_element_commit(surface);
             }
@@ -211,13 +211,25 @@ impl SmallCage {
 //
 // TODO: I need a new element to mark if it is just init
 impl SmallCage {
-    fn map_untitled_element_with_surface(&mut self, surface: &WlSurface) -> Option<()> {
-        let window = self
+    fn map_untitled_element(&mut self, surface: &WlSurface) -> Option<()> {
+        let mut window = self
             .space
             .elements()
             .find(|w| w.toplevel().wl_surface() == surface)
             .cloned()?;
-        self.map_untitled_element(window)
+        let current_screen = self.current_screen_rectangle()?;
+        let max_size = window.max_size();
+        let mut screen_size = current_screen.size;
+        if window.window_state().is_ssd {
+            screen_size.h += HEADER_BAR_HEIGHT;
+        }
+        let (x, y) = (
+            (screen_size.w - max_size.w) / 2,
+            (screen_size.h - max_size.h) / 2,
+        );
+        window.set_inited();
+        self.space.map_element(window, (x, y), true);
+        Some(())
     }
 
     fn map_one_element(&mut self, surface: &WlSurface) -> Option<()> {
@@ -335,7 +347,7 @@ impl SmallCage {
     }
 
     // TODO:?
-    pub fn current_screen_rectangle(&self) -> Option<Rectangle<i32, Logical>> {
+    fn current_screen_rectangle(&self) -> Option<Rectangle<i32, Logical>> {
         let output = self
             .space
             .output_under(self.pointer.current_location())
@@ -344,7 +356,7 @@ impl SmallCage {
     }
 
     // TODO: very base
-    pub fn handle_be_untiled_window(&mut self, window: &WindowElement) {
+    fn handle_dead_window(&mut self, window: &WindowElement) {
         let Some(current_screen) = self.current_screen_rectangle() else {
             return;
         };

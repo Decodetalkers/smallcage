@@ -36,8 +36,8 @@ use smithay::{
     },
 };
 
+use crate::shell::WindowElement;
 use crate::CalloopData;
-use crate::{handlers::HEADER_BAR_HEIGHT, shell::WindowElement};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum SplitState {
@@ -255,22 +255,6 @@ impl SmallCage {
             state.fullscreen_output = Some(wl_output);
         });
         toplevelsurface.send_configure();
-    }
-
-    pub fn map_untitled_element(&mut self, mut window: WindowElement) -> Option<()> {
-        let current_screen = self.current_screen_rectangle()?;
-        let max_size = window.max_size();
-        let mut screen_size = current_screen.size;
-        if window.window_state().is_ssd {
-            screen_size.h += HEADER_BAR_HEIGHT;
-        }
-        let (x, y) = (
-            (screen_size.w - max_size.w) / 2,
-            (screen_size.h - max_size.h) / 2,
-        );
-        window.set_inited();
-        self.space.map_element(window, (x, y), true);
-        Some(())
     }
 }
 impl XdgActivationHandler for SmallCage {
