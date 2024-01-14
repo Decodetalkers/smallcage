@@ -81,7 +81,9 @@ impl PointerTarget<SmallCage> for WindowElement {
             if state.ptr_entered_window {
                 self.window.button(seat, data, event)
             } else {
-                state.header_bar.clicked(seat, data, self, event.serial);
+                if state.header_bar.clicked(seat, data, self, event.serial) {
+                    tracing::info!("need change the state");
+                }
             }
             return;
         }
