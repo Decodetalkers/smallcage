@@ -169,7 +169,10 @@ impl SmallCage {
                             self.handle_dead_window(&(window.clone()));
                             self.map_untitled_window(surface);
                         }
-                        ElementState::UnTileToTile => {}
+                        ElementState::UnTileToTile => {
+                            window.change_state();
+                            self.resize_element_commit(surface);
+                        }
                         _ => {}
                     }
                 }
