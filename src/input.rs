@@ -104,7 +104,7 @@ impl SmallCage {
                         self.space.elements().for_each(|window| {
                             window.toplevel().send_pending_configure();
                         });
-                        if !window.is_fixed_window() {
+                        if !window.is_untiled_window() {
                             self.raise_untiled_elements();
                         }
                     } else {

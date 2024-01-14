@@ -70,6 +70,9 @@ impl SmallCage {
 
     pub fn handle_focus_change(&mut self) -> Option<()> {
         let (window, _) = self.find_current_select_surface()?;
+        if window.is_untiled_window() {
+            return Some(());
+        }
         let dh = &self.display_handle;
         let client = dh.get_client(window.id()).ok();
         set_data_device_focus(dh, &self.seat, client.clone());
