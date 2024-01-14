@@ -27,11 +27,43 @@ use smithay::{
 
 use crate::handlers::{HeaderBar, HEADER_BAR_HEIGHT};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
+pub enum ElementState {
+    #[default]
+    Tile,
+    TileToUnTile,
+    Untile,
+    UnTileToTile,
+}
+
+impl ElementState {
+    fn is_change_state(&self) -> bool {
+        matches!(
+            self,
+            ElementState::TileToUnTile | ElementState::UnTileToTile
+        )
+    }
+
+    fn is_untiled_state(&self) -> bool {
+        matches!(self, ElementState::Untile)
+    }
+
+    fn change_state(&mut self) {
+        match self {
+            ElementState::UnTileToTile => *self = ElementState::Tile,
+            ElementState::TileToUnTile => *self = ElementState::Untile,
+            ElementState::Untile => *self = ElementState::UnTileToTile,
+            ElementState::Tile => *self = ElementState::TileToUnTile,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct WindowState {
     pub is_ssd: bool,
     pub ptr_entered_window: bool,
     pub is_fixed_window: bool,
+    pub element_state: ElementState,
     pub output_size: Size<i32, Logical>,
     pub element_size: Size<i32, Logical>,
     pub origin_pos: Point<i32, Logical>,
@@ -132,12 +164,33 @@ impl WindowElement {
         self.window_state_mut().is_ssd = ssd
     }
 
+    pub fn is_untiled_window(&self) -> bool {
+        self.window_state().element_state.is_untiled_state()
+    }
+
+    pub fn need_state_change(&self) -> bool {
+        self.window_state().element_state.is_change_state()
+    }
+
+    pub fn change_state(&self) {
+        if self.window_state().is_fixed_window {
+            return;
+        }
+        self.window_state_mut().element_state.change_state();
+        tracing::info!("{:?}", self.window_state().element_state);
+    }
+
+    pub fn current_window_state(&self) -> ElementState {
+        self.window_state().element_state.clone()
+    }
+
     pub fn is_fixed_window(&self) -> bool {
         self.window_state().is_fixed_window
     }
 
     pub fn set_is_fixed_window(&self) {
         self.window_state_mut().is_fixed_window = true;
+        self.window_state_mut().element_state = ElementState::Untile;
     }
 
     pub fn output_size(&self) -> Size<i32, Logical> {

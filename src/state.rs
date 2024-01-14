@@ -216,9 +216,11 @@ impl SmallCage {
                 .current_state()
                 .states
                 .contains(xdg_toplevel::State::Fullscreen)
-                || winit.is_fixed_window()
             {
                 self.full_screen_commit(winit.toplevel().wl_surface());
+                continue;
+            }
+            if winit.is_untiled_window() {
                 continue;
             }
             let (origin_x, origin_y) = winit.origin_pos().into();

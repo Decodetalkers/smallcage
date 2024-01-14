@@ -15,7 +15,11 @@ use smithay::{
     },
 };
 
-use crate::{shell::WindowElement, state::SplitState, SmallCage};
+use crate::{
+    shell::{ElementState, WindowElement},
+    state::SplitState,
+    SmallCage,
+};
 
 use super::HEADER_BAR_HEIGHT;
 
@@ -149,11 +153,26 @@ impl SmallCage {
                 window.set_is_fixed_window();
             }
             window.toplevel().send_configure();
-        } else if isconfigured && !window.is_init() {
-            if window.is_fixed_window() {
-                self.map_untitled_element(surface);
+        } else if isconfigured {
+            if !window.is_init() {
+                if window.is_fixed_window() {
+                    self.map_untitled_element(surface);
+                } else {
+                    self.resize_element_commit(surface);
+                }
             } else {
-                self.resize_element_commit(surface);
+                let need_state_change = window.need_state_change();
+                if need_state_change {
+                    let current_window_state = window.current_window_state().clone();
+                    match current_window_state {
+                        ElementState::TileToUnTile => {
+                            self.handle_dead_window(&(window.clone()));
+                            self.map_untitled_window(surface);
+                        }
+                        ElementState::UnTileToTile => {}
+                        _ => {}
+                    }
+                }
             }
         }
         self.raise_untiled_elements();
@@ -165,7 +184,7 @@ impl SmallCage {
         let mut elements: Vec<WindowElement> = self
             .space
             .elements()
-            .filter(|w| w.is_fixed_window())
+            .filter(|w| w.is_untiled_window())
             .cloned()
             .collect();
         elements.sort_by(|a, b| a.z_index().partial_cmp(&b.z_index()).unwrap());
@@ -176,7 +195,7 @@ impl SmallCage {
 
     fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
         match self.current_active_window_rectangle(surface) {
-            Some(rec) => self.map_with_split(surface, rec),
+            Some(element) => self.map_with_split(surface, element),
             None => self.map_one_element(surface),
         }
     }
@@ -229,6 +248,27 @@ impl SmallCage {
         );
         window.set_inited();
         self.space.map_element(window, (x, y), true);
+        Some(())
+    }
+
+    fn map_untitled_window(&mut self, surface: &WlSurface) -> Option<()> {
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
+        let current_screen = self.current_screen_rectangle()?;
+        let max_size = window.geometry().size;
+        let mut screen_size = current_screen.size;
+        if window.window_state().is_ssd {
+            screen_size.h += HEADER_BAR_HEIGHT;
+        }
+        let (x, y) = (
+            (screen_size.w - max_size.w) / 2,
+            (screen_size.h - max_size.h) / 2,
+        );
+        window.change_state();
+        self.space.map_element(window.clone(), (x, y), true);
         Some(())
     }
 
@@ -330,7 +370,7 @@ impl SmallCage {
                 .states
                 .contains(xdg_toplevel::State::Activated)
                 && w.toplevel().wl_surface() != surface
-                && !w.is_fixed_window()
+                && !w.is_untiled_window()
         })
     }
 
@@ -339,7 +379,7 @@ impl SmallCage {
             None => self
                 .space
                 .elements()
-                .filter(|w| !w.is_fixed_window() && w.toplevel().wl_surface() != surface)
+                .filter(|w| !w.is_untiled_window() && w.toplevel().wl_surface() != surface)
                 .last()
                 .cloned(),
             value => value.cloned(),

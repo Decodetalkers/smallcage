@@ -1,6 +1,6 @@
 use super::WindowElement;
 use crate::{handlers::HEADER_BAR_HEIGHT, SmallCage};
-use smithay::input::pointer::PointerTarget;
+use smithay::{backend::input::ButtonState, input::pointer::PointerTarget};
 
 impl PointerTarget<SmallCage> for WindowElement {
     fn enter(
@@ -81,8 +81,11 @@ impl PointerTarget<SmallCage> for WindowElement {
             if state.ptr_entered_window {
                 self.window.button(seat, data, event)
             } else {
-                if state.header_bar.clicked(seat, data, self, event.serial) {
-                    tracing::info!("need change the state");
+                if state.header_bar.clicked(seat, data, self, event.serial)
+                    && event.state == ButtonState::Released
+                {
+                    state.element_state.change_state();
+                    self.window.toplevel().send_configure();
                 }
             }
             return;
