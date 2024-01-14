@@ -61,10 +61,7 @@ impl HeaderBar {
                 false
             }
             Some(loc) if loc.x <= BUTTON_WIDTH as f64 => {
-                tracing::info!("Change state");
                 true
-                //state.space.map_element(window.clone(), (10, 10), true);
-                //state.handle_dead_window(window, pedding_size, current_screen_rectangle);
             }
             _ => false,
         }

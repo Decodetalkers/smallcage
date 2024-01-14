@@ -91,6 +91,13 @@ impl WindowElement {
         self.is_init
     }
 
+    pub fn to_untile_property_size(&self) -> Size<i32, Logical> {
+        if self.is_fixed_window() {
+            return self.max_size();
+        }
+        self.geometry().size
+    }
+
     pub fn set_inited(&mut self) {
         self.is_init = true;
     }
@@ -177,7 +184,6 @@ impl WindowElement {
             return;
         }
         self.window_state_mut().element_state.change_state();
-        tracing::info!("{:?}", self.window_state().element_state);
     }
 
     pub fn current_window_state(&self) -> ElementState {

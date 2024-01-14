@@ -166,8 +166,9 @@ impl SmallCage {
                     let current_window_state = window.current_window_state().clone();
                     match current_window_state {
                         ElementState::TileToUnTile => {
+                            window.change_state();
                             self.handle_dead_window(&(window.clone()));
-                            self.map_untitled_window(surface);
+                            self.map_untitled_element(surface);
                         }
                         ElementState::UnTileToTile => {
                             window.change_state();
@@ -240,7 +241,7 @@ impl SmallCage {
             .find(|w| w.toplevel().wl_surface() == surface)
             .cloned()?;
         let current_screen = self.current_screen_rectangle()?;
-        let max_size = window.max_size();
+        let max_size = window.to_untile_property_size();
         let mut screen_size = current_screen.size;
         if window.window_state().is_ssd {
             screen_size.h += HEADER_BAR_HEIGHT;
@@ -251,27 +252,6 @@ impl SmallCage {
         );
         window.set_inited();
         self.space.map_element(window, (x, y), true);
-        Some(())
-    }
-
-    fn map_untitled_window(&mut self, surface: &WlSurface) -> Option<()> {
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)
-            .cloned()?;
-        let current_screen = self.current_screen_rectangle()?;
-        let max_size = window.geometry().size;
-        let mut screen_size = current_screen.size;
-        if window.window_state().is_ssd {
-            screen_size.h += HEADER_BAR_HEIGHT;
-        }
-        let (x, y) = (
-            (screen_size.w - max_size.w) / 2,
-            (screen_size.h - max_size.h) / 2,
-        );
-        window.change_state();
-        self.space.map_element(window.clone(), (x, y), true);
         Some(())
     }
 
