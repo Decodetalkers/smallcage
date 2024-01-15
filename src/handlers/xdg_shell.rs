@@ -495,7 +495,7 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
-                if w.is_fixed_window() {
+                if w.is_untiled_window() {
                     return false;
                 }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
@@ -534,7 +534,7 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
-                if w.is_fixed_window() {
+                if w.is_untiled_window() {
                     return false;
                 }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
@@ -573,7 +573,7 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
-                if w.is_fixed_window() {
+                if w.is_untiled_window() {
                     return false;
                 }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
@@ -612,7 +612,7 @@ impl SmallCage {
             .space
             .elements()
             .filter(|w| {
-                if w.is_fixed_window() {
+                if w.is_untiled_window() {
                     return false;
                 }
                 let Some(Point { x, y, .. }) = self.space.element_location(w) else {
