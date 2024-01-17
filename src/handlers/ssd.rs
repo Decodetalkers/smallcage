@@ -10,7 +10,10 @@ use smithay::{
     utils::{Logical, Point, Serial},
 };
 
-use crate::{shell::WindowElement, state::SmallCage};
+use crate::{
+    shell::{ElementState, WindowElement},
+    state::SmallCage,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct HeaderBar {
@@ -47,21 +50,41 @@ impl HeaderBar {
     }
 
     #[allow(unused)]
-    #[must_use]
     pub fn clicked(
         &mut self,
         seat: &Seat<SmallCage>,
         state: &mut SmallCage,
         window: &WindowElement,
         serial: Serial,
-    ) -> bool {
+    )  {
         match self.pointer_loc.as_ref() {
             Some(loc) if loc.x > (self.width - BUTTON_WIDTH) as f64 => {
                 window.toplevel().send_close();
-                false
             }
-            Some(loc) if loc.x <= BUTTON_WIDTH as f64 => true,
-            _ => false,
+            Some(loc) if loc.x <= BUTTON_WIDTH as f64 => {
+                let mut window = window.clone();
+                state.handle.insert_idle(move |data| {
+                    let mut state = &mut data.state;
+                    window.change_state();
+                    let need_state_change = window.need_state_change();
+                    if need_state_change {
+                        let current_window_state = window.current_window_state().clone();
+                        match current_window_state {
+                            ElementState::TileToUnTile => {
+                                window.change_state();
+                                state.handle_dead_window(&(window.clone()));
+                                state.map_untitled_element(&window);
+                            }
+                            ElementState::UnTileToTile => {
+                                window.change_state();
+                                state.resize_element_commit(&window);
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+            }
+            _ => {},
         }
     }
 

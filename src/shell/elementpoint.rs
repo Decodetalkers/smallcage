@@ -80,11 +80,8 @@ impl PointerTarget<SmallCage> for WindowElement {
         if state.is_ssd {
             if state.ptr_entered_window {
                 self.window.button(seat, data, event)
-            } else if state.header_bar.clicked(seat, data, self, event.serial)
-                && event.state == ButtonState::Released
-            {
-                state.element_state.change_state();
-                self.window.toplevel().send_configure();
+            } else if event.state == ButtonState::Released {
+                state.header_bar.clicked(seat, data, self, event.serial)
             }
             return;
         }
