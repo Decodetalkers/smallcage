@@ -409,6 +409,7 @@ impl SmallCage {
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
                 element.set_pedding_size(Some(size));
+                element.set_origin_pos((o_x, y).into());
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
                 });
@@ -455,7 +456,7 @@ impl SmallCage {
                 element.set_output_size(screen_size);
                 element.set_element_size(newsize);
                 element.set_pedding_size(Some(size));
-                element.set_origin_pos(ori_pos);
+                element.set_origin_pos((x, o_y).into());
                 element.toplevel().with_pending_state(|state| {
                     state.size = Some(newsize);
                 });

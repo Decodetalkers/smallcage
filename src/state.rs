@@ -241,6 +241,7 @@ impl SmallCage {
             winit.toplevel().send_configure();
             self.space.map_element(winit, newpoint, false);
         }
+        self.raise_untiled_elements();
     }
 
     // this should commit when full is here
