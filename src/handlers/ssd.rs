@@ -56,7 +56,7 @@ impl HeaderBar {
         state: &mut SmallCage,
         window: &WindowElement,
         serial: Serial,
-    )  {
+    ) {
         match self.pointer_loc.as_ref() {
             Some(loc) if loc.x > (self.width - BUTTON_WIDTH) as f64 => {
                 window.toplevel().send_close();
@@ -69,14 +69,13 @@ impl HeaderBar {
                     let need_state_change = window.need_state_change();
                     if need_state_change {
                         let current_window_state = window.current_window_state().clone();
+                        window.change_state();
                         match current_window_state {
                             ElementState::TileToUnTile => {
-                                window.change_state();
                                 state.handle_dead_window(&(window.clone()));
                                 state.map_untitled_element(&window);
                             }
                             ElementState::UnTileToTile => {
-                                window.change_state();
                                 state.resize_element_commit(&window);
                             }
                             _ => {}
@@ -84,7 +83,7 @@ impl HeaderBar {
                     }
                 });
             }
-            _ => {},
+            _ => {}
         }
     }
 
