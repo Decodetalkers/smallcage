@@ -62,7 +62,7 @@ impl HeaderBar {
                 window.toplevel().send_close();
             }
             Some(loc) if loc.x <= BUTTON_WIDTH as f64 => {
-                let mut window = window.clone();
+                let window = window.clone();
                 state.handle.insert_idle(move |data| {
                     let mut state = &mut data.state;
                     window.change_state();
