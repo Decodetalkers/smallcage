@@ -15,7 +15,11 @@ use smithay::{
     },
 };
 
-use crate::{shell::WindowElement, state::SplitState, SmallCage};
+use crate::{
+    shell::{ElementState, WindowElement},
+    state::SplitState,
+    SmallCage,
+};
 
 use super::HEADER_BAR_HEIGHT;
 
@@ -105,6 +109,24 @@ delegate_xdg_shell!(SmallCage);
 
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
+    pub fn handle_element_state_change(&mut self, window: &WindowElement) {
+        window.change_state();
+        let need_state_change = window.need_state_change();
+        if need_state_change {
+            let current_window_state = window.current_window_state().clone();
+            window.change_state();
+            match current_window_state {
+                ElementState::TileToUnTile => {
+                    self.handle_dead_window(window);
+                    self.map_untitled_element(window);
+                }
+                ElementState::UnTileToTile => {
+                    self.resize_element_commit(window);
+                }
+                _ => {}
+            }
+        }
+    }
     pub fn handle_xdg_commit(&mut self, surface: &WlSurface) -> Option<()> {
         let mut window = self
             .space
@@ -176,7 +198,7 @@ impl SmallCage {
         }
     }
 
-    pub fn resize_element_commit(&mut self, window: &WindowElement) -> Option<()> {
+    fn resize_element_commit(&mut self, window: &WindowElement) -> Option<()> {
         let surface = window.toplevel().wl_surface();
         match self.current_active_window_rectangle(surface) {
             Some(element) => self.map_with_split(window, element),
@@ -214,7 +236,7 @@ impl SmallCage {
 //
 // TODO: I need a new element to mark if it is just init
 impl SmallCage {
-    pub fn map_untitled_element(&mut self, window: &WindowElement) -> Option<()> {
+    fn map_untitled_element(&mut self, window: &WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let max_size = window.to_untile_property_size();
         let mut screen_size = current_screen.size;
@@ -339,7 +361,7 @@ impl SmallCage {
     }
 
     // TODO: very base
-    pub fn handle_dead_window(&mut self, window: &WindowElement) {
+    fn handle_dead_window(&mut self, window: &WindowElement) {
         let Some(current_screen) = self.current_screen_rectangle() else {
             return;
         };

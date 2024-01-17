@@ -10,10 +10,7 @@ use smithay::{
     utils::{Logical, Point, Serial},
 };
 
-use crate::{
-    shell::{ElementState, WindowElement},
-    state::SmallCage,
-};
+use crate::{shell::WindowElement, state::SmallCage};
 
 #[derive(Debug, Clone, Default)]
 pub struct HeaderBar {
@@ -64,23 +61,7 @@ impl HeaderBar {
             Some(loc) if loc.x <= BUTTON_WIDTH as f64 => {
                 let window = window.clone();
                 state.handle.insert_idle(move |data| {
-                    let mut state = &mut data.state;
-                    window.change_state();
-                    let need_state_change = window.need_state_change();
-                    if need_state_change {
-                        let current_window_state = window.current_window_state().clone();
-                        window.change_state();
-                        match current_window_state {
-                            ElementState::TileToUnTile => {
-                                state.handle_dead_window(&(window.clone()));
-                                state.map_untitled_element(&window);
-                            }
-                            ElementState::UnTileToTile => {
-                                state.resize_element_commit(&window);
-                            }
-                            _ => {}
-                        }
-                    }
+                    data.state.handle_element_state_change(&window);
                 });
             }
             _ => {}
