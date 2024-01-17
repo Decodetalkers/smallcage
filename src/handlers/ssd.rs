@@ -60,9 +60,7 @@ impl HeaderBar {
                 window.toplevel().send_close();
                 false
             }
-            Some(loc) if loc.x <= BUTTON_WIDTH as f64 => {
-                true
-            }
+            Some(loc) if loc.x <= BUTTON_WIDTH as f64 => true,
             _ => false,
         }
     }

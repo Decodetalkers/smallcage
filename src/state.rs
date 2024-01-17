@@ -6,7 +6,9 @@ use smithay::{
     desktop::{space::SpaceElement, PopupKind, PopupManager, Space, WindowSurfaceType},
     input::{pointer::PointerHandle, Seat, SeatState},
     reexports::{
-        calloop::{generic::Generic, EventLoop, Interest, LoopSignal, Mode, PostAction},
+        calloop::{
+            generic::Generic, EventLoop, Interest, LoopHandle, LoopSignal, Mode, PostAction,
+        },
         wayland_protocols::xdg::decoration::{
             self as xdg_decoration,
             zv1::server::zxdg_toplevel_decoration_v1::Mode as DecorationMode,
@@ -70,11 +72,13 @@ pub struct SmallCage {
     pub seat: Seat<Self>,
     pub pointer: PointerHandle<Self>,
 
+    pub handle: LoopHandle<'static, CalloopData>,
+
     pub splitstate: SplitState,
 }
 
 impl SmallCage {
-    pub fn new(event_loop: &mut EventLoop<CalloopData>, display: Display<Self>) -> Self {
+    pub fn new(event_loop: &mut EventLoop<'static, CalloopData>, display: Display<Self>) -> Self {
         let start_time = std::time::Instant::now();
 
         let dh = display.handle();
@@ -140,6 +144,8 @@ impl SmallCage {
 
             seat,
             pointer,
+
+            handle: event_loop.handle(),
 
             splitstate: SplitState::default(),
         }
