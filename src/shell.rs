@@ -233,7 +233,7 @@ impl WindowElement {
             .unwrap_or(self.window_size())
     }
 
-    pub fn set_origin_pos(&mut self, point: Point<i32, Logical>) {
+    pub fn set_origin_pos(&self, point: Point<i32, Logical>) {
         self.window_state_mut().origin_pos = point
     }
 }
