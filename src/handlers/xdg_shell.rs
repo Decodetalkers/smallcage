@@ -110,10 +110,11 @@ delegate_xdg_shell!(SmallCage);
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
     pub fn handle_xdg_commit(&mut self, surface: &WlSurface) -> Option<()> {
-        let window = self
+        let mut window = self
             .space
             .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)?;
+            .find(|w| w.toplevel().wl_surface() == surface)
+            .cloned()?;
 
         let initial_configure_sent = with_states(surface, |states| {
             states
@@ -155,10 +156,11 @@ impl SmallCage {
             window.toplevel().send_configure();
         } else if isconfigured {
             if !window.is_init() {
+                window.set_inited();
                 if window.is_fixed_window() {
-                    self.map_untitled_element(surface);
+                    self.map_untitled_element(&window);
                 } else {
-                    self.resize_element_commit(surface);
+                    self.resize_element_commit(&window);
                 }
             } else {
                 let need_state_change = window.need_state_change();
@@ -168,11 +170,11 @@ impl SmallCage {
                         ElementState::TileToUnTile => {
                             window.change_state();
                             self.handle_dead_window(&(window.clone()));
-                            self.map_untitled_element(surface);
+                            self.map_untitled_element(&window);
                         }
                         ElementState::UnTileToTile => {
                             window.change_state();
-                            self.resize_element_commit(surface);
+                            self.resize_element_commit(&window);
                         }
                         _ => {}
                     }
@@ -197,10 +199,11 @@ impl SmallCage {
         }
     }
 
-    fn resize_element_commit(&mut self, surface: &WlSurface) -> Option<()> {
+    fn resize_element_commit(&mut self, window: &WindowElement) -> Option<()> {
+        let surface = window.toplevel().wl_surface();
         match self.current_active_window_rectangle(surface) {
-            Some(element) => self.map_with_split(surface, element),
-            None => self.map_one_element(surface),
+            Some(element) => self.map_with_split(window, element),
+            None => self.map_one_element(window),
         }
     }
 
@@ -234,12 +237,7 @@ impl SmallCage {
 //
 // TODO: I need a new element to mark if it is just init
 impl SmallCage {
-    fn map_untitled_element(&mut self, surface: &WlSurface) -> Option<()> {
-        let mut window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)
-            .cloned()?;
+    fn map_untitled_element(&mut self, window: &WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let max_size = window.to_untile_property_size();
         let mut screen_size = current_screen.size;
@@ -250,20 +248,14 @@ impl SmallCage {
             (screen_size.w - max_size.w) / 2,
             (screen_size.h - max_size.h) / 2,
         );
-        window.set_inited();
-        self.space.map_element(window, (x, y), true);
+        self.space.map_element(window.clone(), (x, y), true);
         Some(())
     }
 
-    fn map_one_element(&mut self, surface: &WlSurface) -> Option<()> {
+    fn map_one_element(&mut self, window: &WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let loc = current_screen.loc;
         let (w, h) = current_screen.size.into();
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)
-            .cloned()?;
         window.toplevel().with_pending_state(|state| {
             state.size = Some((w, h).into());
         });
@@ -271,18 +263,16 @@ impl SmallCage {
         if window.window_state().is_ssd {
             current_screen_size.h -= HEADER_BAR_HEIGHT;
         }
-        let mut fin_window = window.clone();
-        fin_window.set_inited();
-        fin_window.toplevel().send_configure();
-        fin_window.set_output_size(current_screen_size);
-        fin_window.set_element_size(current_screen_size);
-        fin_window.set_origin_pos(loc);
-        self.space.map_element(fin_window, loc, true);
+        window.toplevel().send_configure();
+        window.set_output_size(current_screen_size);
+        window.set_element_size(current_screen_size);
+        window.set_origin_pos(loc);
+        self.space.map_element(window.clone(), loc, true);
 
         Some(())
     }
 
-    fn map_with_split(&mut self, surface: &WlSurface, windowpre: WindowElement) -> Option<()> {
+    fn map_with_split(&mut self, window: &WindowElement, windowpre: WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let (x, y) = self.space.element_location(&windowpre)?.into();
         let (w, h) = windowpre.window_size().into();
@@ -302,11 +292,6 @@ impl SmallCage {
 
         let mut afterwindowsize = size;
 
-        let window = self
-            .space
-            .elements()
-            .find(|w| w.toplevel().wl_surface() == surface)
-            .cloned()?;
         if window.window_state().is_ssd {
             afterwindowsize.h -= HEADER_BAR_HEIGHT;
         }
@@ -316,12 +301,10 @@ impl SmallCage {
         });
         window.toplevel().send_configure();
 
-        let mut fin_window = window.clone();
-        fin_window.set_inited();
-        fin_window.set_element_size(afterwindowsize);
-        fin_window.set_output_size(current_screen.size);
-        fin_window.set_origin_pos(point);
-        self.space.map_element(fin_window, point, false);
+        window.set_element_size(afterwindowsize);
+        window.set_output_size(current_screen.size);
+        window.set_origin_pos(point);
+        self.space.map_element(window.clone(), point, false);
 
         if windowpre.window_state().is_ssd {
             size.h -= HEADER_BAR_HEIGHT;
