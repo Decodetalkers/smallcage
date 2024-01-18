@@ -114,14 +114,6 @@ impl XdgShellHandler for SmallCage {
             .map(|mode| mode == Mode::ServerSide)
             .unwrap_or(false);
         window.set_ssd(is_ssd);
-        // HACK: force some window to setted size
-        if configure
-            .state
-            .size
-            .is_some_and(|size| size != window.geometry().size)
-        {
-            window.toplevel().send_configure();
-        }
     }
 }
 
