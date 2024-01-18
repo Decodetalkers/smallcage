@@ -22,14 +22,14 @@ pub struct HeaderBar {
     pub background: SolidColorBuffer,
     pub state_button: SolidColorBuffer,
     pub close_button: SolidColorBuffer,
-    pub min_button: SolidColorBuffer,
+    pub fullscreen_button: SolidColorBuffer,
 }
 
 const BG_COLOR: [f32; 4] = [0.75f32, 0.9f32, 0.78f32, 1f32];
-const MIN_COLOR: [f32; 4] = [1f32, 0.965f32, 0.71f32, 1f32];
-const STATE_CHANGE_COLOR: [f32; 4] = [1f32, 0.665f32, 0.71f32, 1f32];
+const FULLSCREEN_COLOR: [f32; 4] = [1f32, 0.965f32, 0.71f32, 1f32];
+const STATE_CHANGE_COLOR: [f32; 4] = [0.85f32, 0.665f32, 0.71f32, 1f32];
 const CLOSE_COLOR: [f32; 4] = [1f32, 0.66f32, 0.612f32, 1f32];
-const MIN_COLOR_HOVER: [f32; 4] = [0.71f32, 0.424f32, 0f32, 1f32];
+const FULLSCREEN_COLOR_HOVER: [f32; 4] = [0.71f32, 0.424f32, 0f32, 1f32];
 const STATE_CHANGE_COLOR_HOVER: [f32; 4] = [0.71f32, 0.624f32, 0f32, 1f32];
 const CLOSE_COLOR_HOVER: [f32; 4] = [0.75f32, 0.11f32, 0.016f32, 1f32];
 
@@ -148,8 +148,10 @@ impl HeaderBar {
             .unwrap_or(false)
             && (needs_redraw_buttons || !self.min_button_hover)
         {
-            self.min_button
-                .update((BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32), MIN_COLOR_HOVER);
+            self.fullscreen_button.update(
+                (BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32),
+                FULLSCREEN_COLOR_HOVER,
+            );
             self.min_button_hover = true;
         } else if !self
             .pointer_loc
@@ -160,8 +162,10 @@ impl HeaderBar {
             .unwrap_or(false)
             && (needs_redraw_buttons || self.min_button_hover)
         {
-            self.min_button
-                .update((BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32), MIN_COLOR);
+            self.fullscreen_button.update(
+                (BUTTON_WIDTH as i32, BUTTON_HEIGHT as i32),
+                FULLSCREEN_COLOR,
+            );
             self.min_button_hover = false;
         }
     }
@@ -198,7 +202,7 @@ impl<R: Renderer> AsRenderElements<R> for HeaderBar {
             )
             .into(),
             SolidColorRenderElement::from_buffer(
-                &self.min_button,
+                &self.fullscreen_button,
                 location
                     + (header_end_offset - button_offset.upscale(2))
                         .to_physical_precise_round(scale),
