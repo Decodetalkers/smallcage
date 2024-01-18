@@ -23,7 +23,7 @@ use smithay::{
 };
 
 use crate::{
-    grabs::MoveSurfaceGrab,
+    grabs::NormalMoveSurfaceGrab,
     shell::{ElementState, WindowElement},
     state::SplitState,
     SmallCage,
@@ -143,7 +143,7 @@ impl SmallCage {
             return;
         }
         let initial_window_location = self.space.element_location(&window).unwrap();
-        let grab = MoveSurfaceGrab {
+        let grab = NormalMoveSurfaceGrab {
             start_data,
             window,
             initial_window_location,
