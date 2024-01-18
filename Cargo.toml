@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-bitflags = "2.4.1"
+bitflags = "2.4.2"
 tracing = "0.1.40"
 profiling = "1.0.13"
 
