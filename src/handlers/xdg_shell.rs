@@ -1,9 +1,16 @@
 use smithay::{
     delegate_xdg_shell,
     desktop::{space::SpaceElement, PopupKind},
+    input::{
+        pointer::{Focus, GrabStartData as PointerGrabStartData},
+        Seat,
+    },
     reexports::{
         wayland_protocols::xdg::{decoration as xdg_decoration, shell::server::xdg_toplevel},
-        wayland_server::protocol::{wl_seat, wl_surface::WlSurface},
+        wayland_server::{
+            protocol::{wl_seat, wl_surface::WlSurface},
+            Resource,
+        },
     },
     utils::{Logical, Point, Rectangle, Serial, Size},
     wayland::{
@@ -16,6 +23,7 @@ use smithay::{
 };
 
 use crate::{
+    grabs::MoveSurfaceGrab,
     shell::{ElementState, WindowElement},
     state::SplitState,
     SmallCage,
@@ -82,6 +90,11 @@ impl XdgShellHandler for SmallCage {
         // TODO
     }
 
+    fn move_request(&mut self, surface: ToplevelSurface, seat: wl_seat::WlSeat, serial: Serial) {
+        let seat: Seat<Self> = Seat::from_resource(&seat).unwrap();
+        self.move_request_xdg(&surface, seat, serial)
+    }
+
     fn ack_configure(&mut self, surface: WlSurface, configure: Configure) {
         let Configure::Toplevel(configure) = configure else {
             return;
@@ -107,6 +120,61 @@ impl XdgShellHandler for SmallCage {
 // Xdg Shell
 delegate_xdg_shell!(SmallCage);
 
+impl SmallCage {
+    pub fn move_request_xdg(
+        &mut self,
+        surface: &ToplevelSurface,
+        seat: Seat<Self>,
+        serial: Serial,
+    ) {
+        let wl_surface = surface.wl_surface();
+        let Some(start_data) = check_grab(&seat, wl_surface, serial) else {
+            return;
+        };
+        let pointer = seat.get_pointer().unwrap();
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == wl_surface)
+            .unwrap()
+            .clone();
+        // TODO: not handle tiled window now
+        if !window.is_untiled_window() {
+            return;
+        }
+        let initial_window_location = self.space.element_location(&window).unwrap();
+        let grab = MoveSurfaceGrab {
+            start_data,
+            window,
+            initial_window_location,
+        };
+
+        pointer.set_grab(self, grab, serial, Focus::Clear);
+    }
+}
+
+fn check_grab(
+    seat: &Seat<SmallCage>,
+    surface: &WlSurface,
+    serial: Serial,
+) -> Option<PointerGrabStartData<SmallCage>> {
+    let pointer = seat.get_pointer()?;
+
+    // Check that this surface has a click grab.
+    if !pointer.has_grab(serial) {
+        return None;
+    }
+
+    let start_data = pointer.grab_start_data()?;
+
+    let (focus, _) = start_data.focus.as_ref()?;
+    // If the focus was for a different surface, ignore the request.
+    if !focus.id().same_client_as(&surface.id()) {
+        return None;
+    }
+
+    Some(start_data)
+}
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
     pub fn handle_element_state_change(&mut self, window: &WindowElement) {

@@ -64,6 +64,13 @@ impl HeaderBar {
                     data.state.handle_element_state_change(&window);
                 });
             }
+            Some(_) => {
+                let seat = seat.clone();
+                let toplevel = window.toplevel().clone();
+                state
+                    .handle
+                    .insert_idle(move |data| data.state.move_request_xdg(&toplevel, seat, serial));
+            }
             _ => {}
         }
     }
