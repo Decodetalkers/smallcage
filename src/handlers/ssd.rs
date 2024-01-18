@@ -46,7 +46,6 @@ impl HeaderBar {
         self.pointer_loc = None;
     }
 
-    #[allow(unused)]
     pub fn clicked(
         &mut self,
         seat: &Seat<SmallCage>,

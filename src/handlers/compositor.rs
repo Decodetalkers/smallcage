@@ -2,9 +2,12 @@ use crate::{shell::WindowElement, state::ClientState, SmallCage};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
-    reexports::wayland_server::{
-        protocol::{wl_buffer, wl_surface::WlSurface},
-        Client,
+    reexports::{
+        wayland_protocols::xdg::shell::server::xdg_toplevel,
+        wayland_server::{
+            protocol::{wl_buffer, wl_surface::WlSurface},
+            Client,
+        },
     },
     utils::{Logical, Point, SERIAL_COUNTER},
     wayland::{
@@ -68,7 +71,21 @@ impl SmallCage {
         self.surface_under_pointer(&self.pointer)
     }
 
+    pub fn find_current_focus_window(&self) -> Option<&WindowElement> {
+        self.space.elements().find(|w| {
+            w.toplevel()
+                .current_state()
+                .states
+                .contains(xdg_toplevel::State::Activated)
+        })
+    }
+
     pub fn handle_focus_change(&mut self) -> Option<()> {
+        if let Some(window_focus) = self.find_current_focus_window() {
+            if window_focus.is_untiled_window() {
+                return None;
+            }
+        }
         let (window, _) = self.find_current_select_surface()?;
         if window.is_untiled_window() {
             return Some(());
