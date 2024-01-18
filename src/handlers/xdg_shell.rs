@@ -357,6 +357,15 @@ impl SmallCage {
             }
         };
 
+        // if the space is not enough, return to single map
+        if !window.max_size().is_empty()
+            && (size.w > window.max_size().w || size.h > window.max_size().h)
+        {
+            window.set_is_fixed_window();
+            self.map_untitled_element(window);
+            return None;
+        }
+
         let mut afterwindowsize = size;
 
         if window.window_state().is_ssd {
