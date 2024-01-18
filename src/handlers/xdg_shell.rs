@@ -323,6 +323,11 @@ impl SmallCage {
         let current_screen = self.current_screen_rectangle()?;
         let loc = current_screen.loc;
         let (w, h) = current_screen.size.into();
+        if !window.max_size().is_empty() && (w > window.max_size().w || h > window.max_size().h) {
+            window.set_is_fixed_window();
+            self.map_untitled_element(window);
+            return None;
+        }
         window.toplevel().with_pending_state(|state| {
             state.size = Some((w, h).into());
         });
