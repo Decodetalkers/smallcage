@@ -23,7 +23,7 @@ use smithay::{
 };
 
 use crate::{
-    grabs::NormalMoveSurfaceGrab,
+    grabs::{NormalMoveSurfaceGrab, ResizeSurfaceGrab},
     shell::{ElementState, WindowElement},
     state::SplitState,
     SmallCage,
@@ -71,7 +71,6 @@ impl XdgShellHandler for SmallCage {
         // TODO popup grabs
     }
 
-    #[allow(unused)]
     fn resize_request(
         &mut self,
         surface: ToplevelSurface,
@@ -79,6 +78,47 @@ impl XdgShellHandler for SmallCage {
         serial: Serial,
         edges: xdg_toplevel::ResizeEdge,
     ) {
+        let Some(window) = self.space.elements().find(|w| w.toplevel() == &surface) else {
+            return;
+        };
+        if !window.is_untiled_window() {
+            return;
+        }
+
+        let seat: Seat<Self> = Seat::from_resource(&seat).unwrap();
+
+        let wl_surface = surface.wl_surface();
+
+        let Some(start_data) = check_grab(&seat, wl_surface, serial) else {
+            tracing::info!("eee");
+            return;
+        };
+        let pointer = seat.get_pointer().unwrap();
+
+        let window = self
+            .space
+            .elements()
+            .find(|w| w.toplevel().wl_surface() == wl_surface)
+            .unwrap()
+            .clone();
+        let initial_window_location = self.space.element_location(&window).unwrap();
+        let initial_window_size = window.geometry().size;
+
+        surface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Resizing);
+        });
+
+        surface.send_pending_configure();
+
+        let grab = ResizeSurfaceGrab::start(
+            start_data,
+            window,
+            edges.into(),
+            Rectangle::from_loc_and_size(initial_window_location, initial_window_size),
+        );
+
+        pointer.set_grab(self, grab, serial, Focus::Clear);
+
         // TODO:
     }
     fn reposition_request(
@@ -117,6 +157,29 @@ impl XdgShellHandler for SmallCage {
     }
 }
 
+fn check_grab(
+    seat: &Seat<SmallCage>,
+    surface: &WlSurface,
+    serial: Serial,
+) -> Option<PointerGrabStartData<SmallCage>> {
+    let pointer = seat.get_pointer()?;
+
+    // Check that this surface has a click grab.
+    if !pointer.has_grab(serial) {
+        return None;
+    }
+
+    let start_data = pointer.grab_start_data()?;
+
+    let (focus, _) = start_data.focus.as_ref()?;
+    // If the focus was for a different surface, ignore the request.
+    if !focus.id().same_client_as(&surface.id()) {
+        return None;
+    }
+
+    Some(start_data)
+}
+
 // Xdg Shell
 delegate_xdg_shell!(SmallCage);
 
@@ -153,28 +216,6 @@ impl SmallCage {
     }
 }
 
-fn check_grab(
-    seat: &Seat<SmallCage>,
-    surface: &WlSurface,
-    serial: Serial,
-) -> Option<PointerGrabStartData<SmallCage>> {
-    let pointer = seat.get_pointer()?;
-
-    // Check that this surface has a click grab.
-    if !pointer.has_grab(serial) {
-        return None;
-    }
-
-    let start_data = pointer.grab_start_data()?;
-
-    let (focus, _) = start_data.focus.as_ref()?;
-    // If the focus was for a different surface, ignore the request.
-    if !focus.id().same_client_as(&surface.id()) {
-        return None;
-    }
-
-    Some(start_data)
-}
 /// Should be called on `WlSurface::commit`
 impl SmallCage {
     pub fn handle_element_state_change(&mut self, window: &WindowElement) {
@@ -347,7 +388,7 @@ impl SmallCage {
     fn map_with_split(&mut self, window: &WindowElement, windowpre: WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let (x, y) = self.space.element_location(&windowpre)?.into();
-        let (w, h) = windowpre.window_size().into();
+        let (w, h) = windowpre.geometry().size.into();
 
         let (point, mut size): (Point<i32, Logical>, Size<i32, Logical>) = match self.splitstate {
             SplitState::HSplit => {

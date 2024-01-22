@@ -1,4 +1,4 @@
-use crate::{shell::WindowElement, state::ClientState, SmallCage};
+use crate::{grabs::normal_resize_grab, shell::WindowElement, state::ClientState, SmallCage};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
@@ -50,6 +50,7 @@ impl CompositorHandler for SmallCage {
         self.handle_xdg_commit(surface);
         self.handle_popup_commit(surface);
         self.popups.commit(surface);
+        normal_resize_grab::handle_commit(&mut self.space, surface);
     }
 }
 

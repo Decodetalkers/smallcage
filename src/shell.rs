@@ -154,15 +154,6 @@ impl WindowElement {
             .borrow_mut()
     }
 
-    pub fn window_size(&self) -> Size<i32, Logical> {
-        let mut size = self.geometry().size;
-        if self.window_state().is_ssd {
-            size.h += HEADER_BAR_HEIGHT
-        }
-        size
-    }
-
-    #[allow(unused)]
     pub fn is_ssd(&self) -> bool {
         self.window_state().is_ssd
     }
@@ -230,7 +221,7 @@ impl WindowElement {
     pub fn get_pedding_size(&self) -> Size<i32, Logical> {
         self.window_state()
             .pedding_size
-            .unwrap_or(self.window_size())
+            .unwrap_or(self.geometry().size)
     }
 
     pub fn set_origin_pos(&self, point: Point<i32, Logical>) {
@@ -296,11 +287,19 @@ impl IsAlive for WindowElement {
 
 impl SpaceElement for WindowElement {
     fn geometry(&self) -> Rectangle<i32, smithay::utils::Logical> {
-        SpaceElement::geometry(&self.window)
+        let mut geo = SpaceElement::geometry(&self.window);
+        if self.window_state().is_ssd {
+            geo.size.h += HEADER_BAR_HEIGHT;
+        }
+        geo
     }
 
     fn bbox(&self) -> Rectangle<i32, smithay::utils::Logical> {
-        SpaceElement::bbox(&self.window)
+        let mut bbox = SpaceElement::bbox(&self.window);
+        if self.is_ssd() {
+            bbox.size.h += HEADER_BAR_HEIGHT;
+        }
+        bbox
     }
 
     fn is_in_input_region(&self, point: &Point<f64, smithay::utils::Logical>) -> bool {
