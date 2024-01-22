@@ -24,7 +24,7 @@ enum KeyAction {
     VtSwitch(i32),
     /// run a command
     Run(String),
-    ChangeWmState,
+    ChangeElementState,
     ChangeSplitSate(SplitState),
     /// Switch the current screen
     Screen(usize),
@@ -50,7 +50,16 @@ impl SmallCage {
                             tracing::error!(cmd, err = %e, "Failed to start program");
                         }
                     }
-                    KeyAction::ChangeWmState => {
+                    KeyAction::ChangeElementState => {
+                        let Some(window) = self.find_current_focus_window().cloned() else {
+                            return;
+                        };
+                        if window.is_fixed_window() {
+                            return;
+                        }
+                        self.handle.insert_idle(move |data| {
+                            data.state.handle_element_state_change(&window);
+                        });
                         //self.wmstatus.status_change();
                     }
                     KeyAction::ChangeSplitSate(state) => {
@@ -225,7 +234,7 @@ fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Optio
     } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_M {
         Some(KeyAction::ScaleDown)
     } else if modifiers.logo && keysym == xkb::KEY_P {
-        Some(KeyAction::ChangeWmState)
+        Some(KeyAction::ChangeElementState)
     } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_P {
         Some(KeyAction::ScaleUp)
     } else if modifiers.logo && modifiers.shift && keysym == xkb::KEY_W {
