@@ -31,8 +31,9 @@ impl SeatHandler for SmallCage {
     fn cursor_image(
         &mut self,
         _seat: &smithay::input::Seat<Self>,
-        _image: smithay::input::pointer::CursorImageStatus,
+        image: smithay::input::pointer::CursorImageStatus,
     ) {
+        *self.cursor_status.lock().unwrap() = image;
     }
 
     fn focus_changed(

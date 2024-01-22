@@ -1,10 +1,16 @@
-use std::{ffi::OsString, sync::Arc};
+use std::{
+    ffi::OsString,
+    sync::{Arc, Mutex},
+};
 
 use smithay::{
     delegate_input_method_manager, delegate_text_input_manager, delegate_virtual_keyboard_manager,
     delegate_xdg_activation, delegate_xdg_decoration,
     desktop::{space::SpaceElement, PopupKind, PopupManager, Space, WindowSurfaceType},
-    input::{pointer::PointerHandle, Seat, SeatState},
+    input::{
+        pointer::{CursorImageStatus, PointerHandle},
+        Seat, SeatState,
+    },
     reexports::{
         calloop::{
             generic::Generic, EventLoop, Interest, LoopHandle, LoopSignal, Mode, PostAction,
@@ -68,6 +74,7 @@ pub struct SmallCage {
     pub data_device_state: DataDeviceState,
     pub xdg_activation_state: XdgActivationState,
     pub xdg_decoration_state: XdgDecorationState,
+    pub cursor_status: Arc<Mutex<CursorImageStatus>>,
 
     pub seat: Seat<Self>,
     pub pointer: PointerHandle<Self>,
@@ -97,6 +104,7 @@ impl SmallCage {
         TextInputManagerState::new::<Self>(&dh);
         InputMethodManagerState::new::<Self, _>(&dh, |_| true);
         VirtualKeyboardManagerState::new::<Self, _>(&dh, |_| true);
+        let cursor_status = Arc::new(Mutex::new(CursorImageStatus::default_named()));
 
         // A seat is a group of keyboards, pointer and touch devices.
         // A seat typically has a pointer and maintains a keyboard focus and a pointer focus.
@@ -141,6 +149,7 @@ impl SmallCage {
             data_device_state,
             xdg_activation_state,
             xdg_decoration_state,
+            cursor_status,
 
             seat,
             pointer,
