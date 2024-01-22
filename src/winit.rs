@@ -1,19 +1,27 @@
-use std::time::Duration;
+use std::{sync::Mutex, time::Duration};
 
 use smithay::{
     backend::{
         renderer::{
-            damage::OutputDamageTracker, element::surface::WaylandSurfaceRenderElement,
-            gles::GlesRenderer, ImportEgl,
+            damage::{Error as OutputDamageTrackerError, OutputDamageTracker},
+            element::AsRenderElements,
+            gles::{GlesRenderer, GlesTexture},
+            ImportEgl,
         },
         winit::{self, WinitEvent},
     },
+    input::pointer::{CursorImageAttributes, CursorImageStatus},
     output::{Mode, Output, PhysicalProperties, Subpixel},
     reexports::calloop::EventLoop,
-    utils::{Rectangle, Transform},
+    utils::{IsAlive, Rectangle, Scale, Transform},
+    wayland::compositor,
 };
 
-use crate::{CalloopData, SmallCage};
+use crate::{
+    drawing::PointerElement,
+    render::{render_output, CustomRenderElements},
+    CalloopData, SmallCage,
+};
 
 pub fn init_winit(
     event_loop: &mut EventLoop<CalloopData>,
@@ -79,26 +87,68 @@ pub fn init_winit(
                 }
                 WinitEvent::Input(event) => state.process_input_event(event),
                 WinitEvent::Redraw => {
+                    let mut cursor_guard = state.cursor_status.lock().unwrap();
+
+                    let mut pointer_element = PointerElement::<GlesTexture>::default();
+
+                    let mut reset = false;
+                    if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
+                        reset = !surface.alive();
+                    }
+                    if reset {
+                        *cursor_guard = CursorImageStatus::default_named();
+                    }
+
+                    let cursor_visible = !matches!(*cursor_guard, CursorImageStatus::Surface(_));
+
+                    pointer_element.set_status(cursor_guard.clone());
+
+                    let mut elements = Vec::<CustomRenderElements<GlesRenderer>>::new();
+                    let scale = Scale::from(output.current_scale().fractional_scale());
+                    let cursor_hotspot =
+                        if let CursorImageStatus::Surface(ref surface) = *cursor_guard {
+                            compositor::with_states(surface, |states| {
+                                states
+                                    .data_map
+                                    .get::<Mutex<CursorImageAttributes>>()
+                                    .unwrap()
+                                    .lock()
+                                    .unwrap()
+                                    .hotspot
+                            })
+                        } else {
+                            (0, 0).into()
+                        };
+                    let cursor_pos = state.pointer.current_location() - cursor_hotspot.to_f64();
+                    let cursor_pos_scaled = cursor_pos.to_physical(scale).to_i32_round();
+                    let renderer = backend.renderer();
+                    elements.extend(pointer_element.render_elements(
+                        renderer,
+                        cursor_pos_scaled,
+                        scale,
+                        1.0,
+                    ));
+
+                    // TODO: handle result
+                    render_output(
+                        &output,
+                        &state.space,
+                        elements,
+                        renderer,
+                        &mut damage_tracker,
+                        0,
+                        false,
+                    )
+                    .map_err(|error| match error {
+                        OutputDamageTrackerError::Rendering(err) => err,
+                        _ => unreachable!(),
+                    })
+                    .unwrap();
+
                     let size = backend.window_size();
                     let damage = Rectangle::from_loc_and_size((0, 0), size);
-
                     backend.bind().unwrap();
-                    smithay::desktop::space::render_output::<
-                        _,
-                        WaylandSurfaceRenderElement<GlesRenderer>,
-                        _,
-                        _,
-                    >(
-                        &output,
-                        backend.renderer(),
-                        1.0,
-                        0,
-                        [&state.space],
-                        &[],
-                        &mut damage_tracker,
-                        [0.1, 0.1, 0.1, 1.0],
-                    )
-                    .unwrap();
+
                     backend.submit(Some(&[damage])).unwrap();
 
                     state.space.elements().for_each(|window| {
@@ -109,6 +159,8 @@ pub fn init_winit(
                             |_, _| Some(output.clone()),
                         )
                     });
+
+                    backend.window().set_cursor_visible(cursor_visible);
 
                     state.space.refresh();
                     let _ = display.flush_clients();

@@ -1,5 +1,7 @@
 mod handlers;
 
+mod drawing;
+mod render;
 mod grabs;
 mod input;
 mod shell;

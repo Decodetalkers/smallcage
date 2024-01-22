@@ -90,7 +90,6 @@ impl XdgShellHandler for SmallCage {
         let wl_surface = surface.wl_surface();
 
         let Some(start_data) = check_grab(&seat, wl_surface, serial) else {
-            tracing::info!("eee");
             return;
         };
         let pointer = seat.get_pointer().unwrap();
