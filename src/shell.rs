@@ -58,6 +58,16 @@ impl ElementState {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub enum SsdResizeState {
+    #[default]
+    Nothing,
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct WindowState {
     pub is_ssd: bool,
@@ -69,6 +79,7 @@ pub struct WindowState {
     pub origin_pos: Point<i32, Logical>,
     pub pedding_size: Option<Size<i32, Logical>>,
     pub header_bar: HeaderBar,
+    pub ssd_resize_state: SsdResizeState,
 }
 
 #[derive(Debug, Clone)]
@@ -226,6 +237,16 @@ impl WindowElement {
 
     pub fn set_origin_pos(&self, point: Point<i32, Logical>) {
         self.window_state_mut().origin_pos = point
+    }
+
+    #[allow(unused)]
+    pub fn get_ssd_resize_state(&self) -> SsdResizeState {
+        self.window_state().ssd_resize_state
+    }
+
+    #[allow(unused)]
+    pub fn set_ssd_resize_state(&self, state: SsdResizeState) {
+        self.window_state_mut().ssd_resize_state = state;
     }
 }
 
