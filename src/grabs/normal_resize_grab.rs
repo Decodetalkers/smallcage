@@ -1,6 +1,6 @@
 use crate::{shell::WindowElement, SmallCage};
 use smithay::{
-    desktop::{Space, space::SpaceElement},
+    desktop::{space::SpaceElement, Space},
     input::pointer::{
         AxisFrame, ButtonEvent, GestureHoldBeginEvent, GestureHoldEndEvent, GesturePinchBeginEvent,
         GesturePinchEndEvent, GesturePinchUpdateEvent, GestureSwipeBeginEvent,

@@ -1,9 +1,9 @@
 mod handlers;
 
 mod drawing;
-mod render;
 mod grabs;
 mod input;
+mod render;
 mod shell;
 mod state;
 mod winit;
