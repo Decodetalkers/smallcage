@@ -143,36 +143,38 @@ impl PointerTarget<SmallCage> for WindowElement {
             let ssd_resize_state = state.ssd_resize_state;
             let serial = event.serial;
             let window = self.clone();
-            data.handle.insert_idle(move |data| {
-                let state = &mut data.state;
-                let edges = match ssd_resize_state {
-                    SsdResizeState::Left => ResizeEdge::LEFT,
-                    SsdResizeState::Top => ResizeEdge::TOP,
-                    SsdResizeState::Right => ResizeEdge::RIGHT,
-                    SsdResizeState::Bottom => ResizeEdge::BOTTOM,
-                    _ => return,
-                };
-                let seat = &state.seat;
-                let Some(start_data) = check_grab(seat, window.toplevel().wl_surface(), serial)
-                else {
-                    return;
-                };
-                let pointer = state.seat.get_pointer().unwrap();
-                let initial_window_location = state.space.element_location(&window).unwrap();
-                let initial_window_size = window.geometry().size;
-                let top_level = window.toplevel();
-                top_level.with_pending_state(|state| {
-                    state.states.set(xdg_toplevel::State::Resizing);
+            if state.element_state.is_untiled_state() {
+                data.handle.insert_idle(move |data| {
+                    let state = &mut data.state;
+                    let edges = match ssd_resize_state {
+                        SsdResizeState::Left => ResizeEdge::LEFT,
+                        SsdResizeState::Top => ResizeEdge::TOP,
+                        SsdResizeState::Right => ResizeEdge::RIGHT,
+                        SsdResizeState::Bottom => ResizeEdge::BOTTOM,
+                        _ => return,
+                    };
+                    let seat = &state.seat;
+                    let Some(start_data) = check_grab(seat, window.toplevel().wl_surface(), serial)
+                    else {
+                        return;
+                    };
+                    let pointer = state.seat.get_pointer().unwrap();
+                    let initial_window_location = state.space.element_location(&window).unwrap();
+                    let initial_window_size = window.geometry().size;
+                    let top_level = window.toplevel();
+                    top_level.with_pending_state(|state| {
+                        state.states.set(xdg_toplevel::State::Resizing);
+                    });
+                    top_level.send_pending_configure();
+                    let grab = ResizeSurfaceGrab::start(
+                        start_data,
+                        window.clone(),
+                        edges,
+                        Rectangle::from_loc_and_size(initial_window_location, initial_window_size),
+                    );
+                    pointer.set_grab(state, grab, serial, Focus::Clear);
                 });
-                top_level.send_pending_configure();
-                let grab = ResizeSurfaceGrab::start(
-                    start_data,
-                    window.clone(),
-                    edges,
-                    Rectangle::from_loc_and_size(initial_window_location, initial_window_size),
-                );
-                pointer.set_grab(state, grab, serial, Focus::Clear);
-            });
+            }
             if state.ptr_entered_window {
                 self.window.button(seat, data, event)
             } else if event.state == ButtonState::Pressed {
