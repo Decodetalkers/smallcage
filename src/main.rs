@@ -49,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::Command::new(command).spawn().ok();
         }
         _ => {
-            std::process::Command::new("wezterm").spawn().ok();
+            std::process::Command::new("kitty").spawn().ok();
         }
     }
 

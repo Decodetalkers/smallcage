@@ -225,7 +225,7 @@ fn process_keyboard_shortcut(modifiers: ModifiersState, keysym: Keysym) -> Optio
         ))
     } else if modifiers.logo && keysym == xkb::KEY_Return {
         // run terminal
-        Some(KeyAction::Run("wezterm".into()))
+        Some(KeyAction::Run("kitty".into()))
     } else if modifiers.logo && keysym == xkb::KEY_l {
         // run terminal
         Some(KeyAction::Run("utena".into()))
