@@ -33,18 +33,18 @@ impl Backend for WinitData {
 }
 
 pub fn run_winit() -> Result<(), Box<dyn std::error::Error>> {
-    let mut event_loop: EventLoop<CalloopData<WinitData>> = EventLoop::try_new()?;
+    let mut event_loop = EventLoop::try_new()?;
 
-    let display: Display<SmallCageState<WinitData>> = Display::new()?;
+    let display = Display::new()?;
     let display_handle = display.handle();
-    let state = SmallCageState::new(&mut event_loop, display, WinitData);
+    let state = SmallCageState::init(&mut event_loop, display, WinitData);
 
     let mut data = CalloopData {
         state,
         display_handle,
     };
 
-    crate::winit::init_winit(&mut event_loop, &mut data)?;
+    init_winit(&mut event_loop, &mut data)?;
 
     std::process::Command::new("kitty").spawn().ok();
 

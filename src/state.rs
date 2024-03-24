@@ -55,7 +55,7 @@ pub enum SplitState {
 }
 
 pub struct SmallCageState<BackendData: Backend + 'static> {
-    pub data: BackendData,
+    pub backend_data: BackendData,
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
 
@@ -86,7 +86,7 @@ pub struct SmallCageState<BackendData: Backend + 'static> {
 }
 
 impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
-    pub fn new(
+    pub fn init(
         event_loop: &mut EventLoop<'static, CalloopData<BackendData>>,
         display: Display<Self>,
         data: BackendData,
@@ -135,7 +135,7 @@ impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
         let loop_signal = event_loop.get_signal();
 
         Self {
-            data,
+            backend_data: data,
             start_time,
 
             display_handle: dh,
