@@ -10,9 +10,8 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         keys: Vec<smithay::input::keyboard::KeysymHandle<'_>>,
         serial: smithay::utils::Serial,
     ) {
-        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
-            KeyboardTarget::enter(w.wl_surface(), seat, data, keys, serial)
-        }
+        let WindowSurface::Wayland(surface) = self.window.underlying_surface();
+        KeyboardTarget::enter(surface.wl_surface(), seat, data, keys, serial)
     }
     fn modifiers(
         &self,
@@ -21,9 +20,8 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         modifiers: smithay::input::keyboard::ModifiersState,
         serial: smithay::utils::Serial,
     ) {
-        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
-            KeyboardTarget::modifiers(w.wl_surface(), seat, data, modifiers, serial)
-        }
+        let WindowSurface::Wayland(surface) = self.window.underlying_surface();
+        KeyboardTarget::modifiers(surface.wl_surface(), seat, data, modifiers, serial)
     }
     fn leave(
         &self,
@@ -31,9 +29,8 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         data: &mut SmallCageState<BackendData>,
         serial: smithay::utils::Serial,
     ) {
-        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
-            KeyboardTarget::leave(w.wl_surface(), seat, data, serial)
-        }
+        let WindowSurface::Wayland(surface) = self.window.underlying_surface();
+        KeyboardTarget::leave(surface.wl_surface(), seat, data, serial)
     }
     fn key(
         &self,
@@ -44,9 +41,8 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         serial: smithay::utils::Serial,
         time: u32,
     ) {
-        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
-            KeyboardTarget::key(w.wl_surface(), seat, data, key, state, serial, time)
-        }
+        let WindowSurface::Wayland(surface) = self.window.underlying_surface();
+        KeyboardTarget::key(surface.wl_surface(), seat, data, key, state, serial, time)
     }
     // add code here
 }

@@ -86,6 +86,7 @@ pub struct SmallCageState<BackendData: Backend + 'static> {
 }
 
 impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
+    #[allow(unused)]
     pub fn seat_name(&self) -> String {
         self.backend_data.seat_name()
     }
