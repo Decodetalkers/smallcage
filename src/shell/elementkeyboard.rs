@@ -1,6 +1,6 @@
 use super::WindowElement;
 use crate::{state::Backend, SmallCageState};
-use smithay::input::keyboard::KeyboardTarget;
+use smithay::{desktop::WindowSurface, input::keyboard::KeyboardTarget};
 
 impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>> for WindowElement {
     fn enter(
@@ -10,7 +10,9 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         keys: Vec<smithay::input::keyboard::KeysymHandle<'_>>,
         serial: smithay::utils::Serial,
     ) {
-        self.window.enter(seat, data, keys, serial)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            KeyboardTarget::enter(w.wl_surface(), seat, data, keys, serial)
+        }
     }
     fn modifiers(
         &self,
@@ -19,7 +21,9 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         modifiers: smithay::input::keyboard::ModifiersState,
         serial: smithay::utils::Serial,
     ) {
-        self.window.modifiers(seat, data, modifiers, serial)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            KeyboardTarget::modifiers(w.wl_surface(), seat, data, modifiers, serial)
+        }
     }
     fn leave(
         &self,
@@ -27,7 +31,9 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         data: &mut SmallCageState<BackendData>,
         serial: smithay::utils::Serial,
     ) {
-        self.window.leave(seat, data, serial)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            KeyboardTarget::leave(w.wl_surface(), seat, data, serial)
+        }
     }
     fn key(
         &self,
@@ -38,7 +44,9 @@ impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>>
         serial: smithay::utils::Serial,
         time: u32,
     ) {
-        self.window.key(seat, data, key, state, serial, time)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            KeyboardTarget::key(w.wl_surface(), seat, data, key, state, serial, time)
+        }
     }
     // add code here
 }

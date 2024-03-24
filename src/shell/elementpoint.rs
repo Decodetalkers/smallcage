@@ -13,7 +13,7 @@ use smithay::{
     },
 };
 use smithay::{
-    desktop::space::SpaceElement,
+    desktop::{space::SpaceElement, WindowSurface},
     input::{pointer::Focus, Seat},
     reexports::{
         wayland_protocols::xdg::shell::server::xdg_toplevel,
@@ -59,13 +59,18 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
                 state.header_bar.pointer_leave();
                 let mut event = event.clone();
                 event.location.y -= HEADER_BAR_HEIGHT as f64;
-                self.window.enter(seat, data, &event);
+
+                if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                    PointerTarget::enter(w.wl_surface(), seat, data, &event);
+                }
                 state.ptr_entered_window = true;
             }
             return;
         }
         state.ptr_entered_window = true;
-        self.window.enter(seat, data, event)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            PointerTarget::enter(w.wl_surface(), seat, data, event)
+        }
     }
 
     fn motion(
@@ -97,7 +102,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
                 state.ssd_resize_state = SsdResizeState::Nothing;
             }
             if event.location.y < HEADER_BAR_HEIGHT as f64 {
-                self.window.motion(seat, data, event);
+                if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                    PointerTarget::motion(w.wl_surface(), seat, data, event);
+                }
                 state.ptr_entered_window = false;
                 state.header_bar.pointer_enter(event.location);
             } else {
@@ -105,11 +112,15 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
                 state.header_bar.pointer_leave();
                 let mut event = event.clone();
                 event.location.y -= HEADER_BAR_HEIGHT as f64;
-                self.window.enter(seat, data, &event);
+                if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                    PointerTarget::motion(w.wl_surface(), seat, data, &event);
+                }
             }
             return;
         }
-        self.window.motion(seat, data, event)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            PointerTarget::motion(w.wl_surface(), seat, data, event);
+        }
     }
 
     fn leave(
@@ -124,11 +135,15 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
             state.ssd_resize_state = SsdResizeState::Nothing;
             state.header_bar.pointer_leave();
             if state.ptr_entered_window {
-                self.window.leave(seat, data, serial, time);
+                if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                    PointerTarget::leave(w.wl_surface(), seat, data, serial, time);
+                }
                 state.ptr_entered_window = false
             }
         } else {
-            self.window.leave(seat, data, serial, time);
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::leave(w.wl_surface(), seat, data, serial, time);
+            }
             state.ptr_entered_window = false;
         }
     }
@@ -177,13 +192,17 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
                 });
             }
             if state.ptr_entered_window {
-                self.window.button(seat, data, event)
+                if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                    PointerTarget::button(w.wl_surface(), seat, data, event);
+                }
             } else if event.state == ButtonState::Pressed {
                 state.header_bar.clicked(seat, data, self, event.serial)
             }
             return;
         }
-        self.window.button(seat, data, event)
+        if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+            PointerTarget::button(w.wl_surface(), seat, data, event);
+        }
     }
 
     fn relative_motion(
@@ -194,7 +213,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.relative_motion(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::relative_motion(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -206,7 +227,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_hold_end(seat, data, event);
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_hold_end(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -218,7 +241,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_swipe_end(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_swipe_end(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -230,7 +255,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_swipe_begin(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_swipe_begin(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -242,7 +269,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_hold_begin(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_hold_begin(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -254,7 +283,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_pinch_end(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_pinch_end(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -266,7 +297,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_swipe_update(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_swipe_update(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -278,7 +311,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_pinch_update(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_pinch_update(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -290,7 +325,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.gesture_pinch_begin(seat, data, event)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::gesture_pinch_begin(w.wl_surface(), seat, data, event);
+            }
         }
     }
 
@@ -301,7 +338,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.frame(seat, data)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::frame(w.wl_surface(), seat, data);
+            }
         }
     }
 
@@ -313,7 +352,9 @@ impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> 
     ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
-            self.window.axis(seat, data, frame)
+            if let WindowSurface::Wayland(w) = self.window.underlying_surface() {
+                PointerTarget::axis(w.wl_surface(), seat, data, frame);
+            }
         }
     }
 }

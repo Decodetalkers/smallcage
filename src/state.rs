@@ -86,6 +86,9 @@ pub struct SmallCageState<BackendData: Backend + 'static> {
 }
 
 impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
+    pub fn seat_name(&self) -> String {
+        self.backend_data.seat_name()
+    }
     pub fn init(
         event_loop: &mut EventLoop<'static, CalloopData<BackendData>>,
         display: Display<Self>,

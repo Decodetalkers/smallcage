@@ -96,7 +96,7 @@ impl PartialEq for WindowElement {
 
 impl WindowElement {
     pub fn id(&self) -> ObjectId {
-        self.window.toplevel().wl_surface().id()
+        self.window.toplevel().unwrap().wl_surface().id()
     }
     pub fn is_init(&self) -> bool {
         self.is_init
@@ -253,13 +253,13 @@ impl WindowElement {
 impl WindowElement {
     pub fn new(surface: ToplevelSurface) -> Self {
         WindowElement {
-            window: Window::new(surface),
+            window: Window::new_wayland_window(surface),
             is_init: false,
         }
     }
 
     pub fn toplevel(&self) -> &ToplevelSurface {
-        self.window.toplevel()
+        self.window.toplevel().as_ref().unwrap()
     }
 
     pub fn surface_under<P>(

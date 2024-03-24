@@ -20,6 +20,7 @@ features = [
 	"backend_vulkan",
 	"backend_session_libseat",
 	"backend_libinput",
+	"renderer_multi",
 	"wayland_frontend",
 	"desktop",
 	"use_system_lib",

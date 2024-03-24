@@ -5,6 +5,8 @@ mod xdg_shell;
 use crate::shell::WindowElement;
 use crate::state::Backend;
 use crate::SmallCageState;
+use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
+use smithay::wayland::output::OutputHandler;
 pub use ssd::{HeaderBar, HEADER_BAR_HEIGHT};
 
 //
@@ -24,6 +26,8 @@ use smithay::{delegate_data_device, delegate_output, delegate_primary_selection,
 impl<BackendData: Backend + 'static> SeatHandler for SmallCageState<BackendData> {
     type KeyboardFocus = WindowElement;
     type PointerFocus = WindowElement;
+    // TODO:
+    type TouchFocus = WlSurface;
 
     fn seat_state(&mut self) -> &mut SeatState<SmallCageState<BackendData>> {
         &mut self.seat_state
@@ -79,5 +83,7 @@ delegate_data_device!(@<BackendData: Backend + 'static>SmallCageState<BackendDat
 //
 // Wl Output & Xdg Output
 //
+
+impl<BackendData: Backend + 'static> OutputHandler for SmallCageState<BackendData> {}
 
 delegate_output!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
