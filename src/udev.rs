@@ -4,7 +4,9 @@ use smithay::{
         egl::context::ContextPriority,
         input::{Device, InputEvent},
         libinput::{LibinputInputBackend, LibinputSessionInterface},
-        renderer::{gles::GlesRenderer, multigpu::{gbm::GbmGlesBackend, GpuManager}},
+        renderer::{
+            gles::GlesRenderer, multigpu::{gbm::GbmGlesBackend, GpuManager}, ImportEgl, ImportMemWl
+        },
         session::{libseat::LibSeatSession, Event as SessionEvent, Session},
         udev::{all_gpus, primary_gpu, UdevBackend},
     },
@@ -24,7 +26,7 @@ pub struct UdevData {
     pub session: LibSeatSession,
     dh: DisplayHandle,
     primary_gpu: DrmNode,
-    //gpus: GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
+    gpus: GpuManager<GbmGlesBackend<GlesRenderer, DrmDeviceFd>>,
 }
 
 impl Backend for UdevData {
@@ -59,8 +61,8 @@ pub fn run_udev() -> Result<(), Box<dyn std::error::Error>> {
                     .expect("No GPU!")
             })
     };
-    //let gpus =
-    //    GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
+    let gpus =
+        GpuManager::new(GbmGlesBackend::with_context_priority(ContextPriority::High)).unwrap();
 
     tracing::info!("Using {} as primary gpu.", primary_gpu);
 
@@ -68,6 +70,7 @@ pub fn run_udev() -> Result<(), Box<dyn std::error::Error>> {
         session,
         dh: display_handle.clone(),
         primary_gpu,
+        gpus,
     };
 
     let mut state = SmallCageState::init(&mut event_loop, display, data);
@@ -108,7 +111,33 @@ pub fn run_udev() -> Result<(), Box<dyn std::error::Error>> {
         })
         .unwrap();
 
-    //state.shm_state.update_formats(state.backend_data.)
+    for (device_id, path) in udev_backend.device_list() {
+        //if let Err(err) = DrmNode::from_dev_id(device_id)
+        //    .map_err(DeviceAddE ::DrmNode)
+        //    .and_then(|node| state.device_added(node, path))
+        //{
+        //    error!("Skipping device {device_id}: {err}");
+        //}
+    }
+    state.shm_state.update_formats(
+        state
+            .backend_data
+            .gpus
+            .single_renderer(&primary_gpu)
+            .unwrap()
+            .shm_formats(),
+    );
+
+    let mut renderer = state
+        .backend_data
+        .gpus
+        .single_renderer(&primary_gpu)
+        .unwrap();
+
+    match renderer.bind_wl_display(&display_handle) {
+        Ok(_) => tracing::info!("EGL hardware-acceleration enabled"),
+        Err(err) => tracing::info!(?err, "Failed to initialize EGL hardware-acceleration"),
+    }
 
     Ok(())
 }
