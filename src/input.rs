@@ -12,7 +12,7 @@ use smithay::{
 
 use crate::{
     shell::WindowElement,
-    state::{SmallCage, SplitState},
+    state::{Backend, SmallCageState, SplitState},
 };
 
 #[allow(dead_code)]
@@ -37,7 +37,7 @@ enum KeyAction {
     None,
 }
 
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     pub fn process_input_event<I: InputBackend>(&mut self, event: InputEvent<I>) {
         match event {
             InputEvent::Keyboard { event, .. } => {
@@ -180,7 +180,7 @@ impl SmallCage {
     }
 }
 
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     fn keyboard_key_to_action<B: InputBackend>(&mut self, evt: B::KeyboardKeyEvent) -> KeyAction {
         let keycode = evt.key_code();
         let state = evt.state();

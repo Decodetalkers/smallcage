@@ -25,13 +25,13 @@ use smithay::{
 use crate::{
     grabs::{NormalMoveSurfaceGrab, ResizeSurfaceGrab},
     shell::{ElementState, WindowElement},
-    state::SplitState,
-    SmallCage,
+    state::{Backend, SplitState},
+    SmallCageState,
 };
 
 use super::HEADER_BAR_HEIGHT;
 
-impl XdgShellHandler for SmallCage {
+impl<BackendData: Backend + 'static> XdgShellHandler for SmallCageState<BackendData> {
     fn xdg_shell_state(&mut self) -> &mut XdgShellState {
         &mut self.xdg_shell_state
     }
@@ -156,11 +156,11 @@ impl XdgShellHandler for SmallCage {
     }
 }
 
-fn check_grab(
-    seat: &Seat<SmallCage>,
+fn check_grab<BackendData: Backend + 'static>(
+    seat: &Seat<SmallCageState<BackendData>>,
     surface: &WlSurface,
     serial: Serial,
-) -> Option<PointerGrabStartData<SmallCage>> {
+) -> Option<PointerGrabStartData<SmallCageState<BackendData>>> {
     let pointer = seat.get_pointer()?;
 
     // Check that this surface has a click grab.
@@ -180,9 +180,9 @@ fn check_grab(
 }
 
 // Xdg Shell
-delegate_xdg_shell!(SmallCage);
+delegate_xdg_shell!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
 
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     pub fn move_request_xdg(
         &mut self,
         surface: &ToplevelSurface,
@@ -216,7 +216,7 @@ impl SmallCage {
 }
 
 /// Should be called on `WlSurface::commit`
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     pub fn handle_element_state_change(&mut self, window: &WindowElement) {
         window.change_state();
         let need_state_change = window.need_state_change();
@@ -343,7 +343,7 @@ impl SmallCage {
 // with the split direction, split the space for new window
 //
 // TODO: I need a new element to mark if it is just init
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     fn map_untitled_element(&mut self, window: &WindowElement) -> Option<()> {
         let current_screen = self.current_screen_rectangle()?;
         let max_size = window.to_untile_property_size();
@@ -590,7 +590,7 @@ impl SmallCage {
     }
 }
 
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     fn find_up_element(
         &self,
         (start_x, start_y): (i32, i32),

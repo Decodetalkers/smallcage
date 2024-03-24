@@ -1,4 +1,4 @@
-use crate::{shell::WindowElement, SmallCage};
+use crate::{shell::WindowElement, state::Backend, SmallCageState};
 use smithay::{
     desktop::{space::SpaceElement, Space},
     input::pointer::{
@@ -39,8 +39,8 @@ impl From<xdg_toplevel::ResizeEdge> for ResizeEdge {
     }
 }
 
-pub struct ResizeSurfaceGrab {
-    start_data: PointerGrabStartData<SmallCage>,
+pub struct ResizeSurfaceGrab<BackendData: Backend + 'static> {
+    start_data: PointerGrabStartData<SmallCageState<BackendData>>,
     window: WindowElement,
 
     edges: ResizeEdge,
@@ -49,9 +49,9 @@ pub struct ResizeSurfaceGrab {
     last_window_size: Size<i32, Logical>,
 }
 
-impl ResizeSurfaceGrab {
+impl<BackendData: Backend + 'static> ResizeSurfaceGrab<BackendData> {
     pub fn start(
-        start_data: PointerGrabStartData<SmallCage>,
+        start_data: PointerGrabStartData<SmallCageState<BackendData>>,
         window: WindowElement,
         edges: ResizeEdge,
         initial_window_rect: Rectangle<i32, Logical>,
@@ -75,11 +75,13 @@ impl ResizeSurfaceGrab {
     }
 }
 
-impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
+impl<BackendData: Backend + 'static> PointerGrab<SmallCageState<BackendData>>
+    for ResizeSurfaceGrab<BackendData>
+{
     fn motion(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         _focus: Option<(WindowElement, Point<i32, Logical>)>,
         event: &MotionEvent,
     ) {
@@ -135,8 +137,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn relative_motion(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         focus: Option<(WindowElement, Point<i32, Logical>)>,
         event: &RelativeMotionEvent,
     ) {
@@ -145,8 +147,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn button(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &ButtonEvent,
     ) {
         handle.button(data, event);
@@ -178,21 +180,25 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn axis(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         details: AxisFrame,
     ) {
         handle.axis(data, details)
     }
 
-    fn frame(&mut self, data: &mut SmallCage, handle: &mut PointerInnerHandle<'_, SmallCage>) {
+    fn frame(
+        &mut self,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
+    ) {
         handle.frame(data);
     }
 
     fn gesture_swipe_begin(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GestureSwipeBeginEvent,
     ) {
         handle.gesture_swipe_begin(data, event)
@@ -200,8 +206,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_swipe_update(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GestureSwipeUpdateEvent,
     ) {
         handle.gesture_swipe_update(data, event)
@@ -209,8 +215,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_swipe_end(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GestureSwipeEndEvent,
     ) {
         handle.gesture_swipe_end(data, event)
@@ -218,8 +224,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_pinch_begin(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GesturePinchBeginEvent,
     ) {
         handle.gesture_pinch_begin(data, event)
@@ -227,8 +233,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_pinch_update(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GesturePinchUpdateEvent,
     ) {
         handle.gesture_pinch_update(data, event)
@@ -236,8 +242,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_pinch_end(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GesturePinchEndEvent,
     ) {
         handle.gesture_pinch_end(data, event)
@@ -245,8 +251,8 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_hold_begin(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GestureHoldBeginEvent,
     ) {
         handle.gesture_hold_begin(data, event)
@@ -254,14 +260,14 @@ impl PointerGrab<SmallCage> for ResizeSurfaceGrab {
 
     fn gesture_hold_end(
         &mut self,
-        data: &mut SmallCage,
-        handle: &mut PointerInnerHandle<'_, SmallCage>,
+        data: &mut SmallCageState<BackendData>,
+        handle: &mut PointerInnerHandle<'_, SmallCageState<BackendData>>,
         event: &GestureHoldEndEvent,
     ) {
         handle.gesture_hold_end(data, event)
     }
 
-    fn start_data(&self) -> &PointerGrabStartData<SmallCage> {
+    fn start_data(&self) -> &PointerGrabStartData<SmallCageState<BackendData>> {
         &self.start_data
     }
 }

@@ -54,7 +54,8 @@ pub enum SplitState {
     VSplit,
 }
 
-pub struct SmallCage {
+pub struct SmallCageState<BackendData: Backend + 'static> {
+    pub data: BackendData,
     pub start_time: std::time::Instant,
     pub socket_name: OsString,
 
@@ -69,7 +70,7 @@ pub struct SmallCage {
     pub xdg_shell_state: XdgShellState,
     pub shm_state: ShmState,
     pub output_manager_state: OutputManagerState,
-    pub seat_state: SeatState<SmallCage>,
+    pub seat_state: SeatState<SmallCageState<BackendData>>,
     pub primary_selection_state: PrimarySelectionState,
     pub data_device_state: DataDeviceState,
     pub xdg_activation_state: XdgActivationState,
@@ -79,13 +80,17 @@ pub struct SmallCage {
     pub seat: Seat<Self>,
     pub pointer: PointerHandle<Self>,
 
-    pub handle: LoopHandle<'static, CalloopData>,
+    pub handle: LoopHandle<'static, CalloopData<BackendData>>,
 
     pub splitstate: SplitState,
 }
 
-impl SmallCage {
-    pub fn new(event_loop: &mut EventLoop<'static, CalloopData>, display: Display<Self>) -> Self {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
+    pub fn new(
+        event_loop: &mut EventLoop<'static, CalloopData<BackendData>>,
+        display: Display<Self>,
+        data: BackendData,
+    ) -> Self {
         let start_time = std::time::Instant::now();
 
         let dh = display.handle();
@@ -130,6 +135,7 @@ impl SmallCage {
         let loop_signal = event_loop.get_signal();
 
         Self {
+            data,
             start_time,
 
             display_handle: dh,
@@ -161,8 +167,8 @@ impl SmallCage {
     }
 
     fn init_wayland_listener(
-        display: Display<SmallCage>,
-        event_loop: &mut EventLoop<CalloopData>,
+        display: Display<SmallCageState<BackendData>>,
+        event_loop: &mut EventLoop<CalloopData<BackendData>>,
     ) -> OsString {
         // Creates a new listening socket, automatically choosing the next available `wayland` socket name.
         let listening_socket = ListeningSocketSource::new_auto().unwrap();
@@ -275,7 +281,7 @@ impl SmallCage {
         toplevelsurface.send_configure();
     }
 }
-impl XdgActivationHandler for SmallCage {
+impl<BackendData: Backend + 'static> XdgActivationHandler for SmallCageState<BackendData> {
     fn activation_state(&mut self) -> &mut XdgActivationState {
         &mut self.xdg_activation_state
     }
@@ -288,7 +294,7 @@ impl XdgActivationHandler for SmallCage {
     }
 }
 
-delegate_xdg_activation!(SmallCage);
+delegate_xdg_activation!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
 
 #[derive(Default)]
 pub struct ClientState {
@@ -300,10 +306,10 @@ impl ClientData for ClientState {
     fn disconnected(&self, _client_id: ClientId, _reason: DisconnectReason) {}
 }
 
-delegate_text_input_manager!(SmallCage);
-delegate_virtual_keyboard_manager!(SmallCage);
-delegate_xdg_decoration!(SmallCage);
-impl XdgDecorationHandler for SmallCage {
+delegate_text_input_manager!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
+delegate_virtual_keyboard_manager!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
+delegate_xdg_decoration!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
+impl<BackendData: Backend + 'static> XdgDecorationHandler for SmallCageState<BackendData> {
     fn new_decoration(&mut self, toplevel: ToplevelSurface) {
         use xdg_decoration::zv1::server::zxdg_toplevel_decoration_v1::Mode;
         // Set the default to client side
@@ -354,7 +360,7 @@ impl XdgDecorationHandler for SmallCage {
     }
 }
 
-impl InputMethodHandler for SmallCage {
+impl<BackendData: Backend + 'static> InputMethodHandler for SmallCageState<BackendData> {
     fn new_popup(&mut self, surface: PopupSurface) {
         if let Err(err) = self.popups.track_popup(PopupKind::from(surface)) {
             tracing::warn!("Failed to track popup: {}", err);
@@ -376,4 +382,8 @@ impl InputMethodHandler for SmallCage {
             .unwrap_or_default()
     }
 }
-delegate_input_method_manager!(SmallCage);
+delegate_input_method_manager!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
+
+pub trait Backend {
+    fn seat_name(&self) -> String;
+}

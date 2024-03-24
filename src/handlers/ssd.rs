@@ -10,7 +10,10 @@ use smithay::{
     utils::{Logical, Point, Serial},
 };
 
-use crate::{shell::WindowElement, state::SmallCage};
+use crate::{
+    shell::WindowElement,
+    state::{Backend, SmallCageState},
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct HeaderBar {
@@ -46,10 +49,10 @@ impl HeaderBar {
         self.pointer_loc = None;
     }
 
-    pub fn clicked(
+    pub fn clicked<BackendData: Backend + 'static>(
         &mut self,
-        seat: &Seat<SmallCage>,
-        state: &mut SmallCage,
+        seat: &Seat<SmallCageState<BackendData>>,
+        state: &mut SmallCageState<BackendData>,
         window: &WindowElement,
         serial: Serial,
     ) {

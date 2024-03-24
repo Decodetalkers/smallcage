@@ -12,7 +12,7 @@ use smithay::{
     },
     input::pointer::{CursorImageAttributes, CursorImageStatus},
     output::{Mode, Output, PhysicalProperties, Subpixel},
-    reexports::calloop::EventLoop,
+    reexports::{calloop::EventLoop, wayland_server::Display},
     utils::{IsAlive, Rectangle, Scale, Transform},
     wayland::compositor,
 };
@@ -20,12 +20,48 @@ use smithay::{
 use crate::{
     drawing::PointerElement,
     render::{render_output, CustomRenderElements},
-    CalloopData, SmallCage,
+    state::Backend,
+    CalloopData, SmallCageState,
 };
 
+pub struct WinitData;
+
+impl Backend for WinitData {
+    fn seat_name(&self) -> String {
+        "winit".to_owned()
+    }
+}
+
+pub fn run_winit() -> Result<(), Box<dyn std::error::Error>> {
+    let mut event_loop: EventLoop<CalloopData<WinitData>> = EventLoop::try_new()?;
+
+    let display: Display<SmallCageState<WinitData>> = Display::new()?;
+    let display_handle = display.handle();
+    let state = SmallCageState::new(&mut event_loop, display, WinitData);
+
+    let mut data = CalloopData {
+        state,
+        display_handle,
+    };
+
+    crate::winit::init_winit(&mut event_loop, &mut data)?;
+
+    std::process::Command::new("kitty").spawn().ok();
+
+    event_loop.run(
+        Some(std::time::Duration::from_secs(1)),
+        &mut data,
+        move |w| {
+            w.state.handle_focus_change();
+        },
+    )?;
+
+    Ok(())
+}
+
 pub fn init_winit(
-    event_loop: &mut EventLoop<CalloopData>,
-    data: &mut CalloopData,
+    event_loop: &mut EventLoop<CalloopData<WinitData>>,
+    data: &mut CalloopData<WinitData>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let state = &mut data.state;
 
@@ -47,7 +83,7 @@ pub fn init_winit(
             model: "Winit".into(),
         },
     );
-    let _global = output.create_global::<SmallCage>(display_handle);
+    let _global = output.create_global::<SmallCageState<WinitData>>(display_handle);
     output.change_current_state(
         Some(mode),
         Some(Transform::Flipped180),

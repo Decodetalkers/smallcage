@@ -6,17 +6,21 @@ mod input;
 mod render;
 mod shell;
 mod state;
+mod udev;
 mod winit;
 
-use smithay::reexports::{
-    calloop::EventLoop,
-    wayland_server::{Display, DisplayHandle},
-};
+static POSSIBLE_BACKENDS: &[&str] = &[
+    "--winit : Run anvil as a X11 or Wayland client using winit.",
+    "--tty-udev : Run anvil as a tty udev client (requires root if without logind).",
+    "--x11 : Run anvil as an X11 client.",
+];
 
-use state::SmallCage;
+use smithay::reexports::wayland_server::DisplayHandle;
 
-pub struct CalloopData {
-    state: SmallCage,
+use state::{Backend, SmallCageState};
+
+pub struct CalloopData<BackendData: Backend + 'static> {
+    state: SmallCageState<BackendData>,
     display_handle: DisplayHandle,
 }
 
@@ -27,39 +31,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing_subscriber::fmt().init();
     }
 
-    let mut event_loop: EventLoop<CalloopData> = EventLoop::try_new()?;
-
-    let display: Display<SmallCage> = Display::new()?;
-    let display_handle = display.handle();
-    let state = SmallCage::new(&mut event_loop, display);
-
-    let mut data = CalloopData {
-        state,
-        display_handle,
-    };
-
-    crate::winit::init_winit(&mut event_loop, &mut data)?;
-
-    let mut args = std::env::args().skip(1);
-    let flag = args.next();
-    let arg = args.next();
-
-    match (flag.as_deref(), arg) {
-        (Some("-c") | Some("--command"), Some(command)) => {
-            std::process::Command::new(command).spawn().ok();
+    let arg = ::std::env::args().nth(1);
+    match arg.as_ref().map(|s| &s[..]) {
+        Some("--winit") => {
+            tracing::info!("Start with winit backend");
+            winit::run_winit()?;
         }
-        _ => {
-            std::process::Command::new("kitty").spawn().ok();
+        Some(other) => {
+            tracing::error!("Unknown backend: {}", other);
+        }
+        None => {
+            #[allow(clippy::disallowed_macros)]
+            {
+                println!("USAGE: anvil --backend");
+                println!();
+                println!("Possible backends are:");
+                for b in POSSIBLE_BACKENDS {
+                    println!("\t{}", b);
+                }
+            }
         }
     }
-
-    event_loop.run(
-        Some(std::time::Duration::from_secs(1)),
-        &mut data,
-        move |w| {
-            w.state.handle_focus_change();
-        },
-    )?;
 
     Ok(())
 }

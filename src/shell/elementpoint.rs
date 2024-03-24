@@ -2,7 +2,8 @@ use super::{SsdResizeState, WindowElement};
 use crate::{
     grabs::{ResizeEdge, ResizeSurfaceGrab},
     handlers::HEADER_BAR_HEIGHT,
-    SmallCage,
+    state::Backend,
+    SmallCageState,
 };
 #[allow(unused)]
 use smithay::{
@@ -22,11 +23,11 @@ use smithay::{
 };
 
 // NOTE: if enter, set state, and check position
-impl PointerTarget<SmallCage> for WindowElement {
+impl<BackendData: Backend + 'static> PointerTarget<SmallCageState<BackendData>> for WindowElement {
     fn enter(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::MotionEvent,
     ) {
         let (w, h) = self.geometry().size.into();
@@ -69,8 +70,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn motion(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::MotionEvent,
     ) {
         let (w, h) = self.geometry().size.into();
@@ -113,8 +114,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn leave(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         serial: smithay::utils::Serial,
         time: u32,
     ) {
@@ -134,8 +135,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn button(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::ButtonEvent,
     ) {
         let mut state = self.window_state_mut();
@@ -187,8 +188,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn relative_motion(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::RelativeMotionEvent,
     ) {
         let state = self.window_state();
@@ -199,8 +200,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_hold_end(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GestureHoldEndEvent,
     ) {
         let state = self.window_state();
@@ -211,8 +212,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_swipe_end(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GestureSwipeEndEvent,
     ) {
         let state = self.window_state();
@@ -223,8 +224,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_swipe_begin(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GestureSwipeBeginEvent,
     ) {
         let state = self.window_state();
@@ -235,8 +236,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_hold_begin(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GestureHoldBeginEvent,
     ) {
         let state = self.window_state();
@@ -247,8 +248,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_pinch_end(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GesturePinchEndEvent,
     ) {
         let state = self.window_state();
@@ -259,8 +260,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_swipe_update(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GestureSwipeUpdateEvent,
     ) {
         let state = self.window_state();
@@ -271,8 +272,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_pinch_update(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GesturePinchUpdateEvent,
     ) {
         let state = self.window_state();
@@ -283,8 +284,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn gesture_pinch_begin(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         event: &smithay::input::pointer::GesturePinchBeginEvent,
     ) {
         let state = self.window_state();
@@ -293,7 +294,11 @@ impl PointerTarget<SmallCage> for WindowElement {
         }
     }
 
-    fn frame(&self, seat: &smithay::input::Seat<SmallCage>, data: &mut SmallCage) {
+    fn frame(
+        &self,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
+    ) {
         let state = self.window_state();
         if !state.is_ssd || state.ptr_entered_window {
             self.window.frame(seat, data)
@@ -302,8 +307,8 @@ impl PointerTarget<SmallCage> for WindowElement {
 
     fn axis(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         frame: smithay::input::pointer::AxisFrame,
     ) {
         let state = self.window_state();
@@ -313,11 +318,11 @@ impl PointerTarget<SmallCage> for WindowElement {
     }
 }
 
-fn check_grab(
-    seat: &Seat<SmallCage>,
+fn check_grab<BackendData: Backend + 'static>(
+    seat: &Seat<SmallCageState<BackendData>>,
     surface: &WlSurface,
     serial: Serial,
-) -> Option<PointerGrabStartData<SmallCage>> {
+) -> Option<PointerGrabStartData<SmallCageState<BackendData>>> {
     let pointer = seat.get_pointer()?;
 
     // Check that this surface has a click grab.

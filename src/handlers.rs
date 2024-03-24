@@ -3,7 +3,8 @@ mod ssd;
 mod xdg_shell;
 
 use crate::shell::WindowElement;
-use crate::SmallCage;
+use crate::state::Backend;
+use crate::SmallCageState;
 pub use ssd::{HeaderBar, HEADER_BAR_HEIGHT};
 
 //
@@ -20,11 +21,11 @@ use smithay::wayland::selection::primary_selection::{
 use smithay::wayland::selection::SelectionHandler;
 use smithay::{delegate_data_device, delegate_output, delegate_primary_selection, delegate_seat};
 
-impl SeatHandler for SmallCage {
+impl<BackendData: Backend + 'static> SeatHandler for SmallCageState<BackendData> {
     type KeyboardFocus = WindowElement;
     type PointerFocus = WindowElement;
 
-    fn seat_state(&mut self) -> &mut SeatState<SmallCage> {
+    fn seat_state(&mut self) -> &mut SeatState<SmallCageState<BackendData>> {
         &mut self.seat_state
     }
 
@@ -47,36 +48,36 @@ impl SeatHandler for SmallCage {
     }
 }
 
-impl PrimarySelectionHandler for SmallCage {
+impl<BackendData: Backend + 'static> PrimarySelectionHandler for SmallCageState<BackendData> {
     fn primary_selection_state(&self) -> &PrimarySelectionState {
         &self.primary_selection_state
     }
 }
 
-delegate_seat!(SmallCage);
-delegate_primary_selection!(SmallCage);
+delegate_seat!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
+delegate_primary_selection!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
 
 //
 // Wl Data Device
 //
 
-impl SelectionHandler for SmallCage {
+impl<BackendData: Backend + 'static> SelectionHandler for SmallCageState<BackendData> {
     type SelectionUserData = ();
 }
 
-impl DataDeviceHandler for SmallCage {
+impl<BackendData: Backend + 'static> DataDeviceHandler for SmallCageState<BackendData> {
     fn data_device_state(&self) -> &smithay::wayland::selection::data_device::DataDeviceState {
         &self.data_device_state
     }
 }
 
-impl ClientDndGrabHandler for SmallCage {}
-impl ServerDndGrabHandler for SmallCage {}
+impl<BackendData: Backend + 'static> ClientDndGrabHandler for SmallCageState<BackendData> {}
+impl<BackendData: Backend + 'static> ServerDndGrabHandler for SmallCageState<BackendData> {}
 
-delegate_data_device!(SmallCage);
+delegate_data_device!(@<BackendData: Backend + 'static>SmallCageState<BackendData>);
 
 //
 // Wl Output & Xdg Output
 //
 
-delegate_output!(SmallCage);
+delegate_output!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);

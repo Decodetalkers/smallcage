@@ -1,4 +1,9 @@
-use crate::{grabs::normal_resize_grab, shell::WindowElement, state::ClientState, SmallCage};
+use crate::{
+    grabs::normal_resize_grab,
+    shell::WindowElement,
+    state::{Backend, ClientState},
+    SmallCageState,
+};
 use smithay::{
     backend::renderer::utils::on_commit_buffer_handler,
     delegate_compositor, delegate_shm,
@@ -22,7 +27,7 @@ use smithay::{
     },
 };
 
-impl CompositorHandler for SmallCage {
+impl<BackendData: Backend + 'static> CompositorHandler for SmallCageState<BackendData> {
     fn compositor_state(&mut self) -> &mut CompositorState {
         &mut self.compositor_state
     }
@@ -54,20 +59,20 @@ impl CompositorHandler for SmallCage {
     }
 }
 
-impl BufferHandler for SmallCage {
+impl<BackendData: Backend + 'static> BufferHandler for SmallCageState<BackendData> {
     fn buffer_destroyed(&mut self, _buffer: &wl_buffer::WlBuffer) {}
 }
 
-impl ShmHandler for SmallCage {
+impl<BackendData: Backend + 'static> ShmHandler for SmallCageState<BackendData> {
     fn shm_state(&self) -> &ShmState {
         &self.shm_state
     }
 }
 
-delegate_compositor!(SmallCage);
-delegate_shm!(SmallCage);
+delegate_compositor!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
+delegate_shm!(@<BackendData: Backend + 'static> SmallCageState<BackendData>);
 
-impl SmallCage {
+impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
     pub fn find_current_select_surface(&self) -> Option<(WindowElement, Point<i32, Logical>)> {
         self.surface_under_pointer(&self.pointer)
     }

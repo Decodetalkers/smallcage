@@ -1,12 +1,12 @@
 use super::WindowElement;
-use crate::SmallCage;
+use crate::{state::Backend, SmallCageState};
 use smithay::input::keyboard::KeyboardTarget;
 
-impl KeyboardTarget<SmallCage> for WindowElement {
+impl<BackendData: Backend + 'static> KeyboardTarget<SmallCageState<BackendData>> for WindowElement {
     fn enter(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         keys: Vec<smithay::input::keyboard::KeysymHandle<'_>>,
         serial: smithay::utils::Serial,
     ) {
@@ -14,8 +14,8 @@ impl KeyboardTarget<SmallCage> for WindowElement {
     }
     fn modifiers(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         modifiers: smithay::input::keyboard::ModifiersState,
         serial: smithay::utils::Serial,
     ) {
@@ -23,16 +23,16 @@ impl KeyboardTarget<SmallCage> for WindowElement {
     }
     fn leave(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         serial: smithay::utils::Serial,
     ) {
         self.window.leave(seat, data, serial)
     }
     fn key(
         &self,
-        seat: &smithay::input::Seat<SmallCage>,
-        data: &mut SmallCage,
+        seat: &smithay::input::Seat<SmallCageState<BackendData>>,
+        data: &mut SmallCageState<BackendData>,
         key: smithay::input::keyboard::KeysymHandle<'_>,
         state: smithay::backend::input::KeyState,
         serial: smithay::utils::Serial,
