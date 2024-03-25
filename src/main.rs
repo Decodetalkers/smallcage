@@ -20,8 +20,8 @@ use smithay::reexports::wayland_server::DisplayHandle;
 use state::{Backend, SmallCageState};
 
 pub struct CalloopData<BackendData: Backend + 'static> {
-    state: SmallCageState<BackendData>,
-    display_handle: DisplayHandle,
+    pub state: SmallCageState<BackendData>,
+    pub display_handle: DisplayHandle,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

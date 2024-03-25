@@ -5,16 +5,23 @@ use smithay::{
         input::{Device, InputEvent},
         libinput::{LibinputInputBackend, LibinputSessionInterface},
         renderer::{
-            gles::GlesRenderer, multigpu::{gbm::GbmGlesBackend, GpuManager}, ImportEgl, ImportMemWl
+            gles::GlesRenderer,
+            multigpu::{gbm::GbmGlesBackend, GpuManager},
+            ImportEgl, ImportMemWl,
         },
         session::{libseat::LibSeatSession, Event as SessionEvent, Session},
-        udev::{all_gpus, primary_gpu, UdevBackend},
+        udev::{all_gpus, primary_gpu, UdevBackend, UdevEvent},
     },
     reexports::{
         calloop::EventLoop,
         input::{DeviceCapability, Libinput},
         wayland_server::{Display, DisplayHandle},
     },
+};
+
+use std::{
+    sync::{atomic::Ordering, Arc},
+    time::Duration,
 };
 
 use crate::{
@@ -139,5 +146,36 @@ pub fn run_udev() -> Result<(), Box<dyn std::error::Error>> {
         Err(err) => tracing::info!(?err, "Failed to initialize EGL hardware-acceleration"),
     }
 
+    // TODO: dmabuf
+
+    event_loop
+        .handle()
+        .insert_source(udev_backend, move |event, _, data| match event {
+            UdevEvent::Added { device_id, path } => {}
+            UdevEvent::Changed { device_id } => {}
+            UdevEvent::Removed { device_id } => {}
+        })
+        .unwrap();
+
+    // run the event loop
+    while state.running.load(Ordering::SeqCst) {
+        let mut calloop_data = CalloopData {
+            state,
+            display_handle,
+        };
+        let result = event_loop.dispatch(Some(Duration::from_millis(16)), &mut calloop_data);
+        CalloopData {
+            state,
+            display_handle,
+        } = calloop_data;
+
+        if result.is_err() {
+            state.running.store(false, Ordering::SeqCst);
+        } else {
+            state.space.refresh();
+            state.popups.cleanup();
+            display_handle.flush_clients().unwrap();
+        }
+    }
     Ok(())
 }

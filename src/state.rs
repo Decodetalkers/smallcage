@@ -1,8 +1,10 @@
 use std::{
     ffi::OsString,
-    sync::{Arc, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 
+use crate::shell::WindowElement;
+use crate::CalloopData;
 use smithay::{
     delegate_input_method_manager, delegate_text_input_manager, delegate_virtual_keyboard_manager,
     delegate_xdg_activation, delegate_xdg_decoration,
@@ -44,9 +46,6 @@ use smithay::{
     },
 };
 
-use crate::shell::WindowElement;
-use crate::CalloopData;
-
 #[derive(Debug, Default, Clone, Copy)]
 pub enum SplitState {
     #[default]
@@ -83,6 +82,8 @@ pub struct SmallCageState<BackendData: Backend + 'static> {
     pub handle: LoopHandle<'static, CalloopData<BackendData>>,
 
     pub splitstate: SplitState,
+
+    pub running: Arc<AtomicBool>,
 }
 
 impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
@@ -167,6 +168,7 @@ impl<BackendData: Backend + 'static> SmallCageState<BackendData> {
             handle: event_loop.handle(),
 
             splitstate: SplitState::default(),
+            running: Arc::new(AtomicBool::new(true)),
         }
     }
 
